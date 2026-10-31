@@ -184,14 +184,21 @@ async function postTweet(
   }
 
   const endpoint = 'https://api.twitter.com/2/tweets';
-  const authHeader = generateOAuthHeader(
-    'POST',
-    endpoint,
-    creds.consumerKey,
-    creds.consumerSecret,
-    creds.accessToken,
-    creds.accessTokenSecret
-  );
+  
+  // Support both OAuth 1.0a (permanent HMAC-SHA1) and OAuth 2.0 User Bearer tokens
+  let authHeader = '';
+  if (creds.accessTokenSecret && creds.consumerKey && creds.consumerSecret) {
+    authHeader = generateOAuthHeader(
+      'POST',
+      endpoint,
+      creds.consumerKey,
+      creds.consumerSecret,
+      creds.accessToken,
+      creds.accessTokenSecret
+    );
+  } else {
+    authHeader = `Bearer ${creds.accessToken}`;
+  }
 
   const payload: any = { text };
   if (replyToId) {
@@ -303,7 +310,9 @@ export async function runAutopilot(): Promise<void> {
     process.env.TWITTER_ACCESS_TOKEN_SECRET ||
     '';
 
-  const hasCredentials = Boolean(consumerKey && consumerSecret && accessToken && accessTokenSecret);
+  const hasCredentials = Boolean(
+    (consumerKey && consumerSecret && accessToken && accessTokenSecret) || accessToken
+  );
   const isDryRun = isForceDryRun || !hasCredentials;
 
   console.log('====================================================');
