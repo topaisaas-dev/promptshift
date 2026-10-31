@@ -1,5 +1,15 @@
 {
-  "lastRun": null,
-  "totalBroadcasts": 0,
-  "history": []
+  "lastRun": "2026-10-31T16:16:27.940Z",
+  "totalBroadcasts": 1,
+  "history": [
+    {
+      "id": "post-d001-morning",
+      "category": "ast-parity",
+      "postedAt": "2026-10-31T16:16:27.940Z",
+      "mainTweetId": "2116564961749057882",
+      "replyTweetId": "2116564971609895278",
+      "simulated": false,
+      "retweetedBy3K": false
+    }
+  ]
 }
