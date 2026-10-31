@@ -3,7 +3,7 @@
  * Captures user journey events, persists locally in client vault, and syncs to API.
  */
 
-import { AnalyticsEvent, EventType, PlatformId } from './analyticsTypes';
+import { AnalyticsEvent, PlatformId, TelemetryChannel } from './analyticsTypes';
 
 const STORAGE_KEY = 'promptshift_analytics_events';
 const MAX_LOCAL_EVENTS = 500;
@@ -47,10 +47,17 @@ export class AnalyticsTracker {
   }
 
   public static trackPageView(path: string = '/', country?: string, currency?: string): void {
+    const pairMatch = path.match(/^\/convert\/([a-z0-9-]+)$/i);
+    const pairSlug = pairMatch ? pairMatch[1].toLowerCase() : undefined;
+    const channel: TelemetryChannel = pairSlug ? 'pseo' : path.startsWith('/cli') ? 'cli' : 'web';
+
     this.track({
       type: 'page_view',
+      path,
+      pairSlug,
+      channel,
       country,
-      currency,
+      currency: currency || 'USD',
     });
   }
 
@@ -59,13 +66,35 @@ export class AnalyticsTracker {
     fileCount: number;
     sizeBytes: number;
     sourcePlatform: PlatformId;
+    pairSlug?: string;
   }): void {
     this.track({
       type: 'project_upload',
+      channel: meta.pairSlug ? 'pseo' : 'web',
+      pairSlug: meta.pairSlug,
       projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
       fileCount: meta.fileCount,
       sizeBytes: meta.sizeBytes,
       sourcePlatform: meta.sourcePlatform,
+    });
+  }
+
+  public static trackPaywallHit(meta: {
+    projectTitle: string;
+    fileCount: number;
+    sourcePlatform: PlatformId;
+    targetPlatform: PlatformId;
+    pairSlug?: string;
+  }): void {
+    this.track({
+      type: 'paywall_hit',
+      channel: meta.pairSlug ? 'pseo' : 'web',
+      pairSlug: meta.pairSlug,
+      projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
+      fileCount: meta.fileCount,
+      sourcePlatform: meta.sourcePlatform,
+      targetPlatform: meta.targetPlatform,
+      planTier: 'single',
     });
   }
 
@@ -82,9 +111,12 @@ export class AnalyticsTracker {
     currency?: string;
     durationMs?: number;
     secretsCount?: number;
+    pairSlug?: string;
   }): void {
     this.track({
       type: 'conversion_completed',
+      channel: meta.pairSlug ? 'pseo' : 'web',
+      pairSlug: meta.pairSlug,
       projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
       sourcePlatform: meta.sourcePlatform,
       targetPlatform: meta.targetPlatform,
@@ -94,23 +126,33 @@ export class AnalyticsTracker {
       isFreeTier: meta.isFreeTier,
       planTier: meta.planTier,
       promoCode: meta.promoCode,
-      currency: meta.currency,
+      currency: meta.currency || 'USD',
       durationMs: meta.durationMs,
       secretsCount: meta.secretsCount,
     });
   }
 
-  public static trackCheckout(planTier: 'single' | 'pro' | 'team', amount?: string, currency?: string): void {
+  public static trackCheckout(
+    planTier: 'single' | 'pro' | 'team',
+    amount?: string,
+    currency?: string,
+    pairSlug?: string
+  ): void {
+    const numericAmount = amount ? Number.parseFloat(amount) : planTier === 'single' ? 1.99 : planTier === 'pro' ? 5.99 : 19.99;
     this.track({
       type: 'checkout_initiated',
+      channel: pairSlug ? 'pseo' : 'web',
+      pairSlug,
       planTier,
-      currency,
+      amountUsd: Number.isFinite(numericAmount) ? numericAmount : 1.99,
+      currency: currency || 'USD',
     });
   }
 
   public static trackPromo(promoCode: string, discountPercent: number): void {
     this.track({
       type: 'promo_applied',
+      channel: 'web',
       promoCode,
       planTier: discountPercent === 100 ? 'vip' : 'pro',
     });
@@ -119,6 +161,7 @@ export class AnalyticsTracker {
   public static trackInvoiceDownload(invoiceNumber: string, planTier?: 'free' | 'single' | 'pro' | 'team' | 'vip'): void {
     this.track({
       type: 'invoice_downloaded',
+      channel: 'web',
       projectTitleAnon: invoiceNumber,
       planTier,
     });
@@ -127,6 +170,7 @@ export class AnalyticsTracker {
   public static trackCliTokenCopied(planTier?: 'free' | 'single' | 'pro' | 'team' | 'vip'): void {
     this.track({
       type: 'cli_token_copied',
+      channel: 'cli',
       planTier,
     });
   }
@@ -187,7 +231,7 @@ export class AnalyticsTracker {
   }
 
   /**
-   * Generates realistic telemetry distribution for executive overview
+   * Generates realistic telemetry distribution for optional sandbox simulation
    */
   private static generateRealisticSeedData(): AnalyticsEvent[] {
     const events: AnalyticsEvent[] = [];
@@ -195,22 +239,22 @@ export class AnalyticsTracker {
 
     const targets: PlatformId[] = ['claude', 'claude', 'claude', 'cursor', 'cursor', 'openai', 'gemini'];
     const sources: PlatformId[] = ['antigravity', 'antigravity', 'gemini', 'gemini', 'claude', 'openai'];
-    const currencies = ['EUR', 'EUR', 'USD', 'USD', 'GBP', 'CAD', 'JPY'];
+    const currencies = ['USD', 'USD', 'USD', 'EUR', 'GBP', 'CAD', 'JPY'];
     const plans: ('free' | 'single' | 'pro' | 'team' | 'vip')[] = ['free', 'free', 'single', 'pro', 'vip', 'team'];
 
-    // 1. Page views over past 7 days (140+ views)
     for (let i = 0; i < 140; i++) {
       const offsetMs = Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
       events.push({
         id: 'ev_pv_' + i,
         type: 'page_view',
+        path: '/',
+        channel: 'web',
         timestamp: new Date(now - offsetMs).toISOString(),
         currency: currencies[i % currencies.length],
-        country: ['FR', 'US', 'DE', 'GB', 'CA', 'JP'][i % 6],
+        country: ['US', 'FR', 'DE', 'GB', 'CA', 'JP'][i % 6],
       });
     }
 
-    // 2. Realistic completed conversions (34 conversions)
     for (let i = 0; i < 34; i++) {
       const offsetMs = Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
       const fileCount = Math.floor(Math.random() * 18) + 2;
@@ -224,6 +268,7 @@ export class AnalyticsTracker {
       events.push({
         id: 'ev_conv_' + i,
         type: 'conversion_completed',
+        channel: 'web',
         timestamp: new Date(now - offsetMs).toISOString(),
         sourcePlatform: source,
         targetPlatform: target,
@@ -240,7 +285,6 @@ export class AnalyticsTracker {
       });
     }
 
-    // Sort descending by timestamp
     return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 }

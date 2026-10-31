@@ -45,7 +45,7 @@ This document contains pre-filled, copy-paste submission forms and GitHub Pull R
 - **Short Pitch**: Shift AI coding projects between Claude, Cursor, OpenAI & Gemini in 1 click.
 - **Detailed Description**:
 PromptShift is a sovereign developer tool designed to eliminate prompt drift and fragmentation across AI coding assistants. It translates master prompts, instruction files, and workspace rules between Cursor (.cursorrules / .mdc), Anthropic Claude Projects (CLAUDE.md), OpenAI Custom GPTs, and Google Gemini / Antigravity in one click. Features 100% in-RAM execution, zero persistent server storage, an automated secret sanitizer, and a zero-install CLI (`npx promptshift`).
-- **Pricing**: Freemium (Free Starter up to 5 files; $1.99 Single Pass; $5.99/mo Pro Developer)
+- **Pricing**: Freemium (Free Starter up to 2 files; $1.99 Single Pass; $5.99/mo Pro Developer)
 - **Tags**: Developer Tools, Coding Assistants, AI Rules, Prompt Engineering, Productivity
 
 ### B. Futurepedia

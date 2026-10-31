@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx tsx tests/test_universal_transpiler.ts && python -m unittest discover tests",
+    "test": "npx tsx tests/test_universal_transpiler.ts && npx tsx tests/test_checkcheck_and_paywall.ts && python -m unittest discover tests",
     "x:autopilot": "node --experimental-strip-types scripts/x-autopilot.ts",
     "x:dry-run": "node --experimental-strip-types scripts/x-autopilot.ts --dry-run"
   },

@@ -49,6 +49,7 @@ import {
   TelemetryFilter,
   EventType,
 } from '@/lib/analytics/analyticsTypes';
+import type { CheckCheckReport } from '@/lib/analytics/checkcheckService';
 
 const ADMIN_STORAGE_AUTH = 'promptshift_admin_session';
 
@@ -76,6 +77,41 @@ export default function AdminDashboardPage() {
   const [seoStatus, setSeoStatus] = useState<any>(null);
   const [seoLoading, setSeoLoading] = useState(false);
   const [seoFeedback, setSeoFeedback] = useState<string | null>(null);
+
+  // Sovereign (checkcheck) 4-Matrix Executive Audit
+  const [checkcheckReport, setCheckcheckReport] = useState<CheckCheckReport | null>(null);
+  const [checkcheckLoading, setCheckcheckLoading] = useState(false);
+  const [isCheckcheckExpanded, setIsCheckcheckExpanded] = useState(true);
+  const [activeCheckcheckTab, setActiveCheckcheckTab] = useState<
+    'catalog16' | 'radars5' | 'funnel7' | 'health'
+  >('catalog16');
+
+  const loadCheckCheck = async (forceRefresh = false, clientEvents: AnalyticsEvent[] = []) => {
+    setCheckcheckLoading(true);
+    try {
+      const res = await fetch('/api/checkcheck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientEvents, refresh: forceRefresh }),
+      });
+      if (res.ok) {
+        const data: CheckCheckReport = await res.json();
+        setCheckcheckReport(data);
+      }
+    } catch {
+      try {
+        const resFallback = await fetch(`/api/checkcheck${forceRefresh ? '?refresh=1' : ''}`);
+        if (resFallback.ok) {
+          const data: CheckCheckReport = await resFallback.json();
+          setCheckcheckReport(data);
+        }
+      } catch {
+        // Offline fallback
+      }
+    } finally {
+      setCheckcheckLoading(false);
+    }
+  };
 
   const checkSeoApi = async () => {
     setSeoLoading(true);
@@ -138,15 +174,10 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Load events (merges local storage with server buffer)
+  // Load events (merges local storage with server buffer — zero fake data seeded by default)
   const loadData = async () => {
     setIsRefreshing(true);
     let loaded = AnalyticsTracker.getEvents();
-
-    if (loaded.length === 0) {
-      AnalyticsTracker.seedRealisticData();
-      loaded = AnalyticsTracker.getEvents();
-    }
 
     try {
       const adminKey = passkeyInput.trim() || 'promptshift-admin-2026';
@@ -167,6 +198,7 @@ export default function AdminDashboardPage() {
     }
 
     setEvents(loaded);
+    loadCheckCheck(false, loaded);
     setTimeout(() => setIsRefreshing(false), 300);
   };
 
@@ -433,11 +465,11 @@ Try it with your project: https://promptshift.dev
                 AnalyticsTracker.seedRealisticData();
                 loadData();
               }}
-              title="Seed realistic activity sample"
+              title="Simulate demo activity in local browser storage only"
               className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Database className="w-3.5 h-3.5" />
-              <span>Seed Data</span>
+              <span>Demo Seed</span>
             </button>
 
             <button
@@ -473,6 +505,397 @@ Try it with your project: https://promptshift.dev
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8">
+        {/* Sovereign (checkcheck) 4-Matrix Executive Audit & Agile Arbitrage Panel */}
+        <section className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0b1322] to-slate-950 border border-cyan-500/30 shadow-2xl flex flex-col gap-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
+                <Scale className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-black text-white tracking-tight">
+                    Protocole Souverain (checkcheck) — Vérité Terrain Polar.sh ($ USD) &amp; Arbitrage Agile
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    {checkcheckReport?.commercialTruthSource === 'polar_api_live'
+                      ? 'POLAR LIVE API'
+                      : 'SYNCING...'}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    100% USD ($)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Diagnostic unifié de <span className="text-cyan-300 font-mono">promptshift.dev</span> : 16 Lignes Catalogue &amp; Rails · 5 Canaux Agents US · Entonnoir 7 Étapes · Zéro vente fictive.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => loadCheckCheck(true, events)}
+                disabled={checkcheckLoading}
+                className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${checkcheckLoading ? 'animate-spin' : ''}`} />
+                <span>Sync Polar Live</span>
+              </button>
+              <a
+                href="/api/checkcheck?format=csv"
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>CSV 16 Rails</span>
+              </a>
+              <a
+                href="/api/checkcheck"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                <span>API JSON</span>
+              </a>
+              <button
+                onClick={() => setIsCheckcheckExpanded(!isCheckcheckExpanded)}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold transition-all cursor-pointer"
+              >
+                {isCheckcheckExpanded ? 'Masquer' : 'Déplier'}
+              </button>
+            </div>
+          </div>
+
+          {/* Ground-Truth KPI Strip */}
+          {checkcheckReport && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Ventes Réelles Payées (Polar)
+                </div>
+                <div className="text-xl font-black text-white mt-1 font-mono">
+                  {checkcheckReport.kpisGlobaux.ventesReellesPayees}{' '}
+                  <span className="text-sm text-emerald-400">
+                    ({checkcheckReport.kpisGlobaux.caNetTotalUsd})
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Hors {checkcheckReport.kpisGlobaux.commandesTestGratuitesPolar} commandes test à $0.00
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Sessions Polar Initiées
+                </div>
+                <div className="text-xl font-black text-cyan-300 mt-1 font-mono">
+                  {checkcheckReport.kpisGlobaux.sessionsCheckoutPolarInitiees}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                  S:{checkcheckReport.kpisGlobaux.sessionsCheckoutSingle199} · P:
+                  {checkcheckReport.kpisGlobaux.sessionsCheckoutPro599} · T:
+                  {checkcheckReport.kpisGlobaux.sessionsCheckoutTeam1999}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Collisions Paywall &amp; 402
+                </div>
+                <div className="text-xl font-black text-amber-300 mt-1 font-mono">
+                  {checkcheckReport.kpisGlobaux.collisionsPaywall402}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Seuil strict &gt;{checkcheckReport.studioHealth.freeTierMaxFiles} fichiers verrouillé
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Rails Paiement &amp; Post-Unlock
+                </div>
+                <div className="text-sm font-black text-emerald-400 mt-1.5 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>HTTP 307 + Auto-ZIP</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-1">
+                  Bypass RAM fermé · Retour Polar vérifié
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-amber-500/30">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                  Acquisition X Autopilot
+                </div>
+                <div className="text-sm font-black text-amber-300 mt-1.5 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>X API HTTP 402</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  {checkcheckReport.studioHealth.xAutopilotStatus.postsReadyInEnglish} posts EN prêts · Crédits X à activer
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isCheckcheckExpanded && checkcheckReport && (
+            <div className="flex flex-col gap-4">
+              {/* Sub-navigation Tabs */}
+              <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+                {[
+                  { id: 'catalog16', label: '2. Tableau Maître Commercial (16 Lignes)' },
+                  { id: 'radars5', label: '3. Radar 5 Canaux Agents US' },
+                  { id: 'funnel7', label: '4. Entonnoir 7 Étapes & Fuites' },
+                  { id: 'health', label: '1. Studio Health Check' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveCheckcheckTab(tab.id as any)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      activeCheckcheckTab === tab.id
+                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-black shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Matrix 2: 16-Row Commercial Catalog & Rails */}
+              {activeCheckcheckTab === 'catalog16' && (
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900/90 text-[10px] uppercase tracking-wider text-slate-400">
+                        <th className="p-3">#</th>
+                        <th className="p-3">Offre / Rail Catalogue</th>
+                        <th className="p-3">Prix ($ USD)</th>
+                        <th className="p-3 text-right">Probes</th>
+                        <th className="p-3 text-right">Essais</th>
+                        <th className="p-3 text-right">402/Paywall</th>
+                        <th className="p-3 text-right">Checkouts</th>
+                        <th className="p-3 text-right">Ventes / CA</th>
+                        <th className="p-3 min-w-[240px]">Diagnostic 0 Vente</th>
+                        <th className="p-3 min-w-[300px] text-cyan-300">
+                          Signal &amp; Décision d&apos;Arbitrage Agile
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {checkcheckReport.catalogMaster16.map((row) => (
+                        <tr key={row.id_rail} className="hover:bg-slate-900/50 align-top">
+                          <td className="p-3 font-mono text-slate-400">{row.ligne}</td>
+                          <td className="p-3">
+                            <div className="font-bold text-white">{row.offre_ou_rail}</div>
+                            <div className="text-[10px] font-mono text-cyan-400">{row.id_rail}</div>
+                            <div className="text-[10px] text-slate-500">{row.categorie}</div>
+                          </td>
+                          <td className="p-3 font-mono font-bold text-emerald-300 whitespace-nowrap">
+                            {row.prix_usd}
+                          </td>
+                          <td className="p-3 text-right font-mono text-slate-300">{row.vues_probes}</td>
+                          <td className="p-3 text-right font-mono text-slate-300">{row.essais_conversions}</td>
+                          <td className="p-3 text-right font-mono text-amber-300">
+                            {row.collisions_paywall_402}
+                          </td>
+                          <td className="p-3 text-right font-mono text-cyan-300 font-bold">
+                            {row.clics_polar_checkout}
+                          </td>
+                          <td className="p-3 text-right font-mono whitespace-nowrap">
+                            <span className="font-bold text-white">{row.ventes_confirmees}</span>{' '}
+                            <span className="text-emerald-400">({row.ca_net_usd})</span>
+                          </td>
+                          <td className="p-3 text-[11px] text-slate-300 leading-relaxed">
+                            {row.diagnostic_zero_vente}
+                          </td>
+                          <td className="p-3 text-[11px] text-cyan-200 bg-cyan-950/15 leading-relaxed font-medium">
+                            {row.signal_et_decision_arbitrage}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Matrix 3: 5 US Agent Channels Radar */}
+              {activeCheckcheckTab === 'radars5' && (
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900/90 text-[10px] uppercase tracking-wider text-slate-400">
+                        <th className="p-3">ID</th>
+                        <th className="p-3">Canal Agent US</th>
+                        <th className="p-3">Statut</th>
+                        <th className="p-3 text-right">Probes</th>
+                        <th className="p-3 text-right">Outils</th>
+                        <th className="p-3 text-right">402</th>
+                        <th className="p-3 text-right">Checkouts</th>
+                        <th className="p-3 text-right">Ventes</th>
+                        <th className="p-3 min-w-[230px]">Diagnostic Friction</th>
+                        <th className="p-3 min-w-[300px] text-cyan-300">
+                          Signal &amp; Décision d&apos;Arbitrage Agile
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {checkcheckReport.usAgentRadars5.map((r) => (
+                        <tr key={r.id_radar} className="hover:bg-slate-900/50 align-top">
+                          <td className="p-3 font-mono text-cyan-400 font-bold">{r.id_radar}</td>
+                          <td className="p-3">
+                            <div className="font-bold text-white">{r.canal_agent_us}</div>
+                            <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                              {r.surfaces_techniques}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                                r.statut === 'ACTION_EXTERNE_X_402'
+                                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              }`}
+                            >
+                              {r.statut}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right font-mono">{r.probes_detectees}</td>
+                          <td className="p-3 text-right font-mono">{r.executions_outils}</td>
+                          <td className="p-3 text-right font-mono text-amber-300">{r.collisions_402}</td>
+                          <td className="p-3 text-right font-mono text-cyan-300 font-bold">
+                            {r.checkouts_inities}
+                          </td>
+                          <td className="p-3 text-right font-mono">
+                            {r.ventes_confirmees} ({r.ca_net_usd})
+                          </td>
+                          <td className="p-3 text-[11px] text-slate-300 leading-relaxed">
+                            {r.diagnostic_friction}
+                          </td>
+                          <td className="p-3 text-[11px] text-cyan-200 bg-cyan-950/15 leading-relaxed font-medium">
+                            {r.signal_et_decision_arbitrage}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Matrix 4: 7-Stage Contact & Purchase Intent Funnel */}
+              {activeCheckcheckTab === 'funnel7' && (
+                <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900/90 text-[10px] uppercase tracking-wider text-slate-400">
+                        <th className="p-3">Étape</th>
+                        <th className="p-3">Intitulé Entonnoir</th>
+                        <th className="p-3 text-right">Volume Réel</th>
+                        <th className="p-3 text-right">Passage</th>
+                        <th className="p-3 min-w-[220px]">Fuite Identifiée</th>
+                        <th className="p-3 min-w-[220px]">Correctif Déployé</th>
+                        <th className="p-3 min-w-[280px] text-cyan-300">
+                          Signal &amp; Décision d&apos;Arbitrage Agile
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {checkcheckReport.contactIntentFunnel7.map((f) => (
+                        <tr key={f.code_etape} className="hover:bg-slate-900/50 align-top">
+                          <td className="p-3 font-mono font-bold text-cyan-400">
+                            {f.etape}. {f.code_etape}
+                          </td>
+                          <td className="p-3 font-bold text-white">{f.intitule_etape}</td>
+                          <td className="p-3 text-right font-mono font-bold text-white">{f.volume_reel}</td>
+                          <td className="p-3 text-right font-mono text-emerald-300">{f.taux_passage_pct}</td>
+                          <td className="p-3 text-[11px] text-rose-200/90 leading-relaxed">
+                            {f.fuite_identifiee}
+                          </td>
+                          <td className="p-3 text-[11px] text-emerald-200/90 leading-relaxed">
+                            {f.correctif_deploye}
+                          </td>
+                          <td className="p-3 text-[11px] text-cyan-200 bg-cyan-950/15 leading-relaxed font-medium">
+                            {f.signal_et_decision_arbitrage}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Matrix 1: Studio Health Check */}
+              {activeCheckcheckTab === 'health' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col gap-2 text-xs">
+                    <div className="font-black text-emerald-300 uppercase tracking-wider text-[11px]">
+                      Intégrité Moteur AST &amp; Monétisation Polar.sh
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Statut Global Studio</span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {checkcheckReport.studioHealth.overallStatus}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Parité Sémantique AST</span>
+                      <span className="font-mono text-white">
+                        {checkcheckReport.studioHealth.astCompilerParity}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Quota Gratuit Strict</span>
+                      <span className="font-mono text-cyan-300">
+                        {checkcheckReport.studioHealth.freeTierMaxFiles} fichiers max (Zéro bypass RAM)
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Liens Permanents Polar (HTTP 307)</span>
+                      <span className="font-mono text-emerald-400">
+                        {checkcheckReport.studioHealth.polarCheckoutLinksVerified307 ? 'VERIFIED LIVE' : 'CHECK'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-slate-400">Vérification Retour &amp; Auto-ZIP 4-en-1</span>
+                      <span className="font-mono text-emerald-400">
+                        {checkcheckReport.studioHealth.postCheckoutAutoUnlockActive ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col gap-2 text-xs">
+                    <div className="font-black text-amber-300 uppercase tracking-wider text-[11px]">
+                      Découverte Agentique US &amp; X Autopilot
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Cartes MCP &amp; A2A (.well-known)</span>
+                      <span className="font-mono text-emerald-400">
+                        {checkcheckReport.studioHealth.mcpAndAgentCardsLive ? 'LIVE + RFC 8288' : 'CHECK'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">File X Autopilot (US English)</span>
+                      <span className="font-mono text-white">
+                        {checkcheckReport.studioHealth.xAutopilotStatus.postsReadyInEnglish} posts (
+                        {checkcheckReport.studioHealth.xAutopilotStatus.dailyScheduleUtc})
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <span className="text-slate-400">Statut Cron GitHub Actions</span>
+                      <span className="font-mono text-amber-300">
+                        {checkcheckReport.studioHealth.xAutopilotStatus.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 leading-relaxed pt-1">
+                      {checkcheckReport.studioHealth.xAutopilotStatus.blockerSummary}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Advanced Telemetry Filter Bar */}
         <section className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-xl flex flex-col gap-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">

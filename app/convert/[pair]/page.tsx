@@ -212,16 +212,16 @@ export default async function ConversionPairPage({ params }: PageProps) {
           {/* Quick CTA to Converter */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href={`/?source=${data.sourceKey}&target=${data.targetKey}&demo=1`}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-base shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 text-center"
+              href={`/?source=${data.sourceKey}&target=${data.targetKey}#dropzone`}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-base shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 text-center"
             >
-              🚀 Launch 1-Click Converter ({data.sourceName} → {data.targetName})
+              🚀 Drop &amp; Convert ({data.sourceName} → {data.targetName})
             </Link>
             <a
-              href="#walkthrough"
-              className="w-full sm:w-auto px-6 py-4 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm font-semibold transition-all text-center"
+              href={`/api/checkout/express?plan=single&channel=pseo&pair=${data.slug}`}
+              className="w-full sm:w-auto px-6 py-4 rounded-xl border border-cyan-500/40 hover:border-cyan-400 bg-slate-900/80 hover:bg-slate-800 text-cyan-300 text-sm font-bold transition-all text-center"
             >
-              📖 Migration Guide & Specs
+              ⚡ Unlock 4-in-1 Suite ($1.99)
             </a>
           </div>
         </div>
@@ -388,29 +388,38 @@ export default async function ConversionPairPage({ params }: PageProps) {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/70">
+            <Link
+              href={`/?source=${data.sourceKey}&target=${data.targetKey}#dropzone`}
+              className="p-4 rounded-xl border border-slate-800 hover:border-emerald-500/50 bg-slate-950/70 transition-all block"
+            >
               <div className="text-xs font-mono text-slate-400 uppercase">Free Starter</div>
-              <div className="text-2xl font-black text-white my-1">$0</div>
-              <div className="text-xs text-slate-400">Up to 2 files • Zero signup</div>
-            </div>
-            <div className="p-4 rounded-xl border border-cyan-500/50 bg-cyan-950/40 relative">
+              <div className="text-2xl font-black text-white my-1">$0.00</div>
+              <div className="text-xs text-slate-400">Up to 2 files • Zero signup →</div>
+            </Link>
+            <a
+              href={`/api/checkout/express?plan=single&channel=pseo&pair=${data.slug}`}
+              className="p-4 rounded-xl border border-cyan-500/50 hover:border-cyan-400 bg-cyan-950/40 relative transition-all block shadow-lg shadow-cyan-500/10"
+            >
               <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-cyan-500 text-[10px] font-bold text-black uppercase">Most Popular</span>
-              <div className="text-xs font-mono text-cyan-400 uppercase">Single Migration</div>
+              <div className="text-xs font-mono text-cyan-400 uppercase">4-in-1 Suite Pass</div>
               <div className="text-2xl font-black text-white my-1">$1.99</div>
-              <div className="text-xs text-slate-300">1 full project export pass</div>
-            </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/70">
-              <div className="text-xs font-mono text-slate-400 uppercase">Pro Developer</div>
+              <div className="text-xs text-cyan-200">1-Click Polar Express →</div>
+            </a>
+            <a
+              href={`/api/checkout/express?plan=pro&channel=pseo&pair=${data.slug}`}
+              className="p-4 rounded-xl border border-slate-800 hover:border-purple-500/50 bg-slate-950/70 transition-all block"
+            >
+              <div className="text-xs font-mono text-purple-400 uppercase">Pro Developer</div>
               <div className="text-2xl font-black text-white my-1">$5.99<span className="text-xs font-normal text-slate-400">/mo</span></div>
-              <div className="text-xs text-slate-400">Unlimited multi-ecosystem</div>
-            </div>
+              <div className="text-xs text-slate-400">Unlimited + CLI Key →</div>
+            </a>
           </div>
 
           <Link
-            href={`/?source=${data.sourceKey}&target=${data.targetKey}`}
-            className="inline-block px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-md transition-all"
+            href={`/?source=${data.sourceKey}&target=${data.targetKey}#dropzone`}
+            className="inline-block px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-md transition-all"
           >
-            Start Migration Now
+            Drop Your {data.sourceName} Workspace Free →
           </Link>
         </section>
 

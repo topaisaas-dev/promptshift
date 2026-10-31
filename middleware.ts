@@ -2,18 +2,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * PromptShift Offline Maintenance Mode Middleware
- * 
- * Controls whether the public site is offline for scheduled maintenance.
- * Set `IS_MAINTENANCE_MODE = true` to put the site offline.
- * 
- * Whitelisted routes during maintenance:
- * - /bouboule (Secret administrative dashboard)
- * - /_next/* (Next.js assets and chunks)
- * - /assets/* (Static images and icons)
- * - /favicon.ico
+ * PromptShift Edge Middleware — Agent Discovery Headers & Maintenance Shield
+ * Injects standard RFC 8288 Link headers for AI crawlers & MCP registries
+ * (GPTBot, ClaudeBot, PerplexityBot, Smithery, Glama, Cursor) on public routes.
  */
 export const IS_MAINTENANCE_MODE = false;
+
+const AGENT_DISCOVERY_LINKS = [
+  '<https://promptshift.dev/llms.txt>; rel="llms-txt"',
+  '<https://promptshift.dev/.well-known/mcp/server-card.json>; rel="mcp-server"',
+  '<https://promptshift.dev/.well-known/agent.json>; rel="agent-card"',
+  '<https://promptshift.dev/api/openapi.json>; rel="service-desc"',
+].join(', ');
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,7 +33,11 @@ export function middleware(request: NextRequest) {
   }
 
   if (!IS_MAINTENANCE_MODE) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (!pathname.startsWith('/bouboule') && !pathname.startsWith('/_next')) {
+      response.headers.set('Link', AGENT_DISCOVERY_LINKS);
+    }
+    return response;
   }
 
   // 1. Whitelist static files and Next.js internal assets

@@ -59,7 +59,7 @@ export async function GET() {
                   schema: { type: 'string', example: 'true' },
                 },
                 'X-Polar-Checkout-Url': {
-                  schema: { type: 'string', example: 'https://promptshift.dev/#pricing' },
+                  schema: { type: 'string', example: 'https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E' },
                 },
                 'X-Polar-Product-Id': {
                   schema: { type: 'string', example: '3e74e0dd-27da-4b78-8dee-f2e0fa36ed25' },
@@ -99,10 +99,10 @@ export async function GET() {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['plan', 'customerEmail'],
+                  required: ['plan'],
                   properties: {
                     plan: { type: 'string', enum: ['single', 'pro', 'team'], description: 'Subscription or pass tier' },
-                    customerEmail: { type: 'string', format: 'email', description: 'Customer billing email' },
+                    customerEmail: { type: 'string', format: 'email', description: 'Optional pre-filled customer billing email' },
                   },
                 },
               },

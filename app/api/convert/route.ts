@@ -4,6 +4,8 @@ import { UniversalTranspiler } from '@/lib/converter/universalTranspiler';
 import { CanonicalProject } from '@/lib/converter/capsSchema';
 import { SecurityGuards } from '@/lib/converter/securityGuards';
 import { MonetizationManager } from '@/lib/config/monetizationConfig';
+import { PolarService } from '@/lib/payments/polarService';
+import { ServerTelemetryStore } from '@/lib/analytics/serverTelemetryStore';
 
 export async function POST(req: Request) {
   try {
@@ -14,10 +16,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid project payload' }, { status: 400 });
     }
 
-    const authHeader = req.headers.get('Authorization') || req.headers.get('X-PromptShift-Key');
-    const isAgentCall = req.headers.get('X-Agent-Client') || req.headers.get('User-Agent')?.includes('Agent') || body.client === 'cli';
+    const rawAuthKey =
+      req.headers.get('X-PromptShift-Key') ||
+      req.headers.get('Authorization') ||
+      body.licenseKey;
+    const hasValidKey = PolarService.isValidLicenseKey(rawAuthKey);
     const fileCount = (project.knowledge_base?.length || 0) + (project.rules?.length || 0) + 1;
     const freeLimit = MonetizationManager.getFreeLimit();
+    const country = req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry') || 'US';
 
     // 1. In-RAM Magic Bytes check if any binary attachments are passed
     if (body.rawFiles) {
@@ -36,8 +42,24 @@ export async function POST(req: Request) {
       targetPlatform || 'claude'
     );
 
-    // x402O: Deterministic In-Flow Paywall (HTTP 402 Payment Required) for CLI/Agent calls exceeding free quota
-    if (isAgentCall && fileCount > freeLimit && !authHeader) {
+    const singleCheckoutUrl = PolarService.getPermanentCheckoutLink('single');
+    const proCheckoutUrl = PolarService.getPermanentCheckoutLink('pro');
+    const teamCheckoutUrl = PolarService.getPermanentCheckoutLink('team');
+
+    // x402O: Deterministic In-Flow Paywall (HTTP 402 Payment Required) for multi-file calls without a valid Polar key
+    if (fileCount > freeLimit && !hasValidKey) {
+      ServerTelemetryStore.record({
+        type: 'paywall_hit',
+        path: '/api/convert#402',
+        channel: body.client === 'cli' ? 'cli' : 'mcp',
+        sourcePlatform: result.sourcePlatform,
+        targetPlatform: result.targetPlatform,
+        fileCount,
+        secretsCount: result.alerts.length,
+        planTier: 'single',
+        country,
+      });
+
       const previewLines = result.diff.targetCode.split('\n').slice(0, 12).join('\n');
       return NextResponse.json(
         {
@@ -57,20 +79,27 @@ export async function POST(req: Request) {
             currency: 'USD',
             single_pass: {
               price_usd: 1.99,
-              product_id: '3e74e0dd-27da-4b78-8dee-f2e0fa36ed25',
-              instant_checkout_url: 'https://polar.sh/checkout/3e74e0dd-27da-4b78-8dee-f2e0fa36ed25',
+              product_id: PolarService.getProductId('single'),
+              instant_checkout_url: singleCheckoutUrl,
+              express_session_url:
+                'https://promptshift.dev/api/checkout/express?plan=single&channel=cli',
             },
             pro_developer_ci_cd: {
               price_usd: 5.99,
-              product_id: 'f646306b-cddd-4478-8aba-ec282a93397a',
-              instant_checkout_url: 'https://polar.sh/checkout/f646306b-cddd-4478-8aba-ec282a93397a',
+              product_id: PolarService.getProductId('pro'),
+              instant_checkout_url: proCheckoutUrl,
+              express_session_url:
+                'https://promptshift.dev/api/checkout/express?plan=pro&channel=cli',
             },
             team_agency: {
               price_usd: 19.99,
-              product_id: '9e8ca309-7881-4d7e-bfb0-6e6eda85505b',
-              instant_checkout_url: 'https://polar.sh/checkout/9e8ca309-7881-4d7e-bfb0-6e6eda85505b',
+              product_id: PolarService.getProductId('team'),
+              instant_checkout_url: teamCheckoutUrl,
+              express_session_url:
+                'https://promptshift.dev/api/checkout/express?plan=team&channel=cli',
             },
-            unlock_instructions: 'Pass your Polar Order ID or License Key via header "X-PromptShift-Key: <KEY>" or CLI flag "--key=<KEY>".',
+            unlock_instructions:
+              'Pass your Polar Order ID or License Key via header "X-PromptShift-Key: <KEY>" or CLI flag "--key=<KEY>".',
           },
         },
         {
@@ -80,13 +109,27 @@ export async function POST(req: Request) {
             'X-Pricing-Currency': 'USD',
             'X-Pricing-Single-Usd': '1.99',
             'X-Pricing-Pro-Usd': '5.99',
-            'X-Polar-Checkout-Single': 'https://polar.sh/checkout/3e74e0dd-27da-4b78-8dee-f2e0fa36ed25',
-            'X-Polar-Checkout-Pro': 'https://polar.sh/checkout/f646306b-cddd-4478-8aba-ec282a93397a',
-            'X-Polar-Product-Id': '3e74e0dd-27da-4b78-8dee-f2e0fa36ed25',
+            'X-Polar-Checkout-Single': singleCheckoutUrl,
+            'X-Polar-Checkout-Pro': proCheckoutUrl,
+            'X-Polar-Product-Id': PolarService.getProductId('single'),
           },
         }
       );
     }
+
+    ServerTelemetryStore.record({
+      type: 'cli_convert',
+      path: '/api/convert',
+      channel: body.client === 'cli' ? 'cli' : 'web',
+      sourcePlatform: result.sourcePlatform,
+      targetPlatform: result.targetPlatform,
+      fileCount,
+      parityScore: result.parityScore,
+      secretsCount: result.alerts.length,
+      isFreeTier: !hasValidKey,
+      planTier: hasValidKey ? 'pro' : 'free',
+      country,
+    });
 
     // 3. Assemble in-memory ZIP
     const zip = new JSZip();

@@ -1,10 +1,10 @@
 # PromptShift
 
-> PromptShift (https://promptshift.dev) is a sovereign, 1-click universal transpiler that converts complete AI assistant workspaces, developer guidelines, master prompts, and system rule definitions between Google Gemini / Antigravity, Anthropic Claude Projects, OpenAI Custom GPTs, Cursor, and GitHub Copilot with 98.5% certified semantic fidelity and in-RAM zero-retention secret sanitization.
+> PromptShift (https://promptshift.dev) is a sovereign, 1-click universal transpiler that converts complete AI assistant workspaces, developer guidelines, master prompts, and system rule definitions between Google Gemini / Antigravity, Anthropic Claude Projects, OpenAI Custom GPTs, Cursor, Windsurf, and GitHub Copilot with 98.5% certified semantic fidelity and in-RAM zero-retention secret sanitization.
 
 ## Core Capabilities
 
-- **Bidirectional Ecosystem Transpilation**: Converts system prompts, steering directives, tool schemas, and workspace configs across Cursor (`.cursorrules` & `.cursor/rules/*.mdc`), Anthropic Claude (`.claude/` instructions & project knowledge), OpenAI (`instructions` & JSON action specs), and Google Gemini (`GEMINI.md`, `AGENTS.md`, and Antigravity skills).
+- **Bidirectional Ecosystem Transpilation**: Converts system prompts, steering directives, tool schemas, and workspace configs across Cursor (`.cursorrules` & `.cursor/rules/*.mdc`), Anthropic Claude (`CLAUDE.md` & XML project instructions), OpenAI (`OPENAI_SYSTEM_PROMPT.md` & Assistants v2 JSON), and Google Gemini (`GEMINI.md`, `AGENTS.md`, and Antigravity skills).
 - **In-RAM Ephemeral Secret Redaction**: Detects and redacts sensitive credentials (Anthropic, OpenAI, Stripe, AWS, HuggingFace, GitLab, Discord, GitHub tokens) directly in memory before writing converted files.
 - **Certified Semantic Integrity (98.5%)**: Maps tone, autonomy thresholds, file references, role definitions, and negative constraints without loss of behavioral alignment.
 - **Sovereign Privacy**: Zero server logs, zero disk writes, zero persistent database retention, zero third-party tracking cookies.
@@ -16,24 +16,29 @@
 - **OpenAI Custom GPTs to Claude & Cursor**: Extracts GPT builder instructions and action schemas into clean Markdown instructions and local tooling configs.
 - **Google Gemini / Antigravity to Multi-Platform**: Converts `GEMINI.md`, `AGENTS.md`, and custom agent skills into targeted format specs for Cursor, Claude, or OpenAI.
 
-## Pricing & Direct Purchase Links
- 
-- **Free Starter**: Projects containing up to 2 files are converted instantly with $0 cost and zero sign-up required.
-- **Single Pass ($1.99 one-time)**: Instant 1-click single project export and universal 4-in-1 multi-ecosystem bundle (Cursor + Claude + Copilot + Gemini) with certified parity badge.
-  - [Direct Checkout: Single Pass ($1.99)](https://polar.sh/checkout/3e74e0dd-27da-4b78-8dee-f2e0fa36ed25)
+## Pricing & Direct Purchase Links (Polar.sh Merchant of Record — 100% USD)
+
+- **Free Starter ($0.00)**: Projects containing up to 2 files are converted instantly with $0 cost and zero sign-up required.
+- **Single Pass ($1.99 one-time)**: Instant 1-click single project export and universal 4-in-1 multi-ecosystem bundle (Cursor + Claude + Copilot/OpenAI + Gemini) with certified parity badge.
+  - [Direct Checkout: Single Pass ($1.99)](https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E)
+  - [Express API Session: Single Pass ($1.99)](https://promptshift.dev/api/checkout/express?plan=single&channel=llmo)
 - **Pro Developer ($5.99 / mo)**: Unlimited multi-file conversions, CLI continuous synchronization tokens, and ephemeral secret shielding.
-  - [Direct Checkout: Pro Developer ($5.99/mo)](https://polar.sh/checkout/f646306b-cddd-4478-8aba-ec282a93397a)
-- **Team & Agency ($19.99 / mo)**: Multi-seat shared licenses with CI/CD GitHub & GitLab Actions auto-sync and SOC-2 / GDPR DPA.
-  - [Direct Checkout: Team & Agency ($19.99/mo)](https://polar.sh/checkout/9e8ca309-7881-4d7e-bfb0-6e6eda85505b)
+  - [Direct Checkout: Pro Developer ($5.99/mo)](https://buy.polar.sh/polar_cl_tRb5IIABbdflDV5GIJu3VcxPRMUrP6Ok99igV0zdJ5a)
+- **Team & Agency ($19.99 / mo)**: 5 developer seats with CI/CD GitHub & GitLab Actions auto-sync and SOC-2 / GDPR DPA.
+  - [Direct Checkout: Team & Agency ($19.99/mo)](https://buy.polar.sh/polar_cl_Pk9oe3UPJgQRhOwDCDUdawKOOdi2cL2XHyRqZ3QFfvC)
 
-## Automation & Developer Protocols
+## Autonomous Agent & Developer Protocols
 
+- **Remote Streamable-HTTP MCP Server**: `https://promptshift.dev/api/mcp`
+- **MCP Registry Server Card**: `https://promptshift.dev/.well-known/mcp/server-card.json`
+- **A2A Agent Discovery Card**: `https://promptshift.dev/.well-known/agent.json`
+- **OpenAPI 3.1 Specification**: `https://promptshift.dev/api/openapi.json`
+- **CAPS JSON Schema**: `https://promptshift.dev/api/llms/schema`
 - **GitHub Action**: `uses: topaisaas-dev/promptshift@v1` with `$GITHUB_STEP_SUMMARY` rich PR table.
-- **CLI Bootstrap**: `npx promptshift --init-ci` automatically injects continuous parity guard workflow into any repository.
+- **CLI Bootstrap**: `npx promptshift` (or `npx promptshift --mcp` for STDIO MCP).
 - **Dynamic Certification Badge**: `https://promptshift.dev/api/badge?score=98.5`
 
 ## Key Links
 
 - [Official Web Application](https://promptshift.dev): Interactive browser drag-and-drop studio.
-- [Pricing & Merchant of Record](https://promptshift.dev/pricing): Transparent checkout via Polar.sh (Apple Pay, Google Pay, Cards, SEPA).
 - [Full LLM Specification](https://promptshift.dev/llms-full.txt): Deep technical specification and architectural breakdown for AI agents.

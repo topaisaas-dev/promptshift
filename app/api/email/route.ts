@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailDispatcher, SendEmailPayload } from '@/lib/email/emailDispatcher';
+import { ServerTelemetryStore } from '@/lib/analytics/serverTelemetryStore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    ServerTelemetryStore.record({
+      type: 'lead_captured',
+      channel: 'web',
+      projectTitleAnon: String(body.action).slice(0, 18),
+      country: req.headers.get('x-vercel-ip-country') || req.headers.get('cf-ipcountry') || 'US',
+    });
 
     const result = await EmailDispatcher.dispatch(body);
     return NextResponse.json(result);

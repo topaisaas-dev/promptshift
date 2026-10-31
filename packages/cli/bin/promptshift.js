@@ -20,9 +20,19 @@ const red = (text) => `\x1b[31m${text}\x1b[0m`;
 const magenta = (text) => `\x1b[35m${text}\x1b[0m`;
 
 const FREE_FILE_LIMIT = 2;
-const POLAR_SINGLE_URL = 'https://polar.sh/checkout/3e74e0dd-27da-4b78-8dee-f2e0fa36ed25';
-const POLAR_PRO_URL = 'https://polar.sh/checkout/f646306b-cddd-4478-8aba-ec282a93397a';
-const POLAR_TEAM_URL = 'https://polar.sh/checkout/9e8ca309-7881-4d7e-bfb0-6e6eda85505b';
+const POLAR_SINGLE_URL = 'https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E';
+const POLAR_PRO_URL = 'https://buy.polar.sh/polar_cl_tRb5IIABbdflDV5GIJu3VcxPRMUrP6Ok99igV0zdJ5a';
+const POLAR_TEAM_URL = 'https://buy.polar.sh/polar_cl_Pk9oe3UPJgQRhOwDCDUdawKOOdi2cL2XHyRqZ3QFfvC';
+
+function isValidLicenseKey(rawKey) {
+  if (!rawKey || typeof rawKey !== 'string') return false;
+  const cleaned = rawKey.trim();
+  if (cleaned.length < 10) return false;
+  if (/^polar_[a-zA-Z0-9_]{8,}$/.test(cleaned)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleaned)) return true;
+  if (/^(PS-PRO-|PS-TEAM-|PSHIFT-|POLAR-)[A-Z0-9_-]{6,}$/i.test(cleaned)) return true;
+  return false;
+}
 
 const BANNER = `
 ${cyan(bold('  ____                            _   ____  _     _  __ _   '))}
@@ -406,7 +416,7 @@ function startMcpServer() {
       } else if (toolName === 'promptshift_transpile') {
         const rules = Array.isArray(args.rules) ? args.rules : [];
         const totalFiles = 1 + rules.length;
-        const hasKey = Boolean(args.license_key || process.env.PROMPTSHIFT_LICENSE_KEY);
+        const hasKey = isValidLicenseKey(args.license_key || process.env.PROMPTSHIFT_LICENSE_KEY);
 
         const detected = {
           source: args.source_platform || 'cursor',
@@ -636,9 +646,10 @@ async function main() {
   console.log(`  ✓ ${green('In-RAM Sanitizer:')} ${redactedCount > 0 ? yellow(`${redactedCount} secret(s) redacted`) : green('0 secrets exposed')}`);
   console.log(`  ✓ ${green('Zero-Retention:')} 100% ephemeral local execution`);
 
-  // Check In-Flow Paywall if not dry-run, > FREE_FILE_LIMIT source rules, and no license key
+  // Check In-Flow Paywall if not dry-run, > FREE_FILE_LIMIT source rules, and no valid license key
   const sourceFileCount = (detected.masterPrompt ? 1 : 0) + detected.rules.length;
-  const isLocked = !opts.dryRun && !opts.key && (sourceFileCount > FREE_FILE_LIMIT || totalGenerated > 3);
+  const hasValidCliKey = isValidLicenseKey(opts.key);
+  const isLocked = !opts.dryRun && !hasValidCliKey && (sourceFileCount > FREE_FILE_LIMIT || totalGenerated > 3);
 
   if (isLocked) {
     // Write the primary master file to prove instant deterministic value, lock the rest

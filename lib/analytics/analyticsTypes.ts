@@ -7,21 +7,32 @@ export type PlatformId = 'gemini' | 'claude' | 'cursor' | 'openai' | 'antigravit
 
 export type AnalyticsPeriod = 'today' | '7d' | '30d' | 'all';
 
+export type TelemetryChannel = 'web' | 'pseo' | 'mcp' | 'cli' | 'llmo' | 'x_social';
+
 export type EventType =
   | 'page_view'
   | 'project_upload'
+  | 'paywall_hit'
   | 'conversion_completed'
   | 'checkout_initiated'
   | 'payment_completed'
   | 'promo_applied'
   | 'invoice_downloaded'
   | 'cli_token_copied'
-  | 'target_selected';
+  | 'target_selected'
+  | 'mcp_probe'
+  | 'mcp_tool_call'
+  | 'llms_crawl'
+  | 'cli_convert'
+  | 'lead_captured';
 
 export interface AnalyticsEvent {
   id: string;
   type: EventType;
   timestamp: string; // ISO 8601
+  path?: string;
+  pairSlug?: string;
+  channel?: TelemetryChannel;
   sourcePlatform?: PlatformId;
   targetPlatform?: PlatformId;
   projectTitleAnon?: string;
@@ -30,6 +41,7 @@ export interface AnalyticsEvent {
   parityScore?: number;
   isFreeTier?: boolean;
   planTier?: 'free' | 'single' | 'pro' | 'team' | 'vip';
+  amountUsd?: number;
   promoCode?: string;
   currency?: string;
   durationMs?: number;
