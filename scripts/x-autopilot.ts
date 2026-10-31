@@ -281,10 +281,27 @@ export async function runAutopilot(): Promise<void> {
   const args = process.argv.slice(2);
   const isForceDryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
 
-  const consumerKey = process.env.X_API_KEY || process.env.TWITTER_API_KEY || '';
-  const consumerSecret = process.env.X_API_SECRET || process.env.TWITTER_API_SECRET || '';
-  const accessToken = process.env.X_ACCESS_TOKEN || process.env.TWITTER_ACCESS_TOKEN || '';
-  const accessTokenSecret = process.env.X_ACCESS_TOKEN_SECRET || process.env.TWITTER_ACCESS_TOKEN_SECRET || '';
+  // Resolve primary broadcast credentials (falls back to 3K Booster account if primary X_* keys are unset)
+  const consumerKey =
+    process.env.X_API_KEY ||
+    process.env.X_3K_API_KEY ||
+    process.env.TWITTER_API_KEY ||
+    '';
+  const consumerSecret =
+    process.env.X_API_SECRET ||
+    process.env.X_3K_API_SECRET ||
+    process.env.TWITTER_API_SECRET ||
+    '';
+  const accessToken =
+    process.env.X_ACCESS_TOKEN ||
+    process.env.X_3K_ACCESS_TOKEN ||
+    process.env.TWITTER_ACCESS_TOKEN ||
+    '';
+  const accessTokenSecret =
+    process.env.X_ACCESS_TOKEN_SECRET ||
+    process.env.X_3K_ACCESS_TOKEN_SECRET ||
+    process.env.TWITTER_ACCESS_TOKEN_SECRET ||
+    '';
 
   const hasCredentials = Boolean(consumerKey && consumerSecret && accessToken && accessTokenSecret);
   const isDryRun = isForceDryRun || !hasCredentials;
