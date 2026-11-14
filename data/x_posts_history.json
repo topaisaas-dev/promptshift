@@ -1,6 +1,6 @@
 {
-  "lastRun": "2026-11-13T20:56:42.401Z",
-  "totalBroadcasts": 19,
+  "lastRun": "2026-11-14T19:21:53.644Z",
+  "totalBroadcasts": 20,
   "history": [
     {
       "id": "post-d001-morning",
@@ -170,6 +170,15 @@
       "postedAt": "2026-11-13T20:56:42.401Z",
       "mainTweetId": "2121346508976996401",
       "replyTweetId": "2121346520662372861",
+      "simulated": false,
+      "retweetedBy3K": true
+    },
+    {
+      "id": "post-d010-afternoon",
+      "category": "multi-agent",
+      "postedAt": "2026-11-14T19:21:53.644Z",
+      "mainTweetId": "2121685036952932775",
+      "replyTweetId": "2121685048524964242",
       "simulated": false,
       "retweetedBy3K": true
     }
