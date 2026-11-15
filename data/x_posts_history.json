@@ -1,6 +1,6 @@
 {
-  "lastRun": "2026-11-14T23:13:00.169Z",
-  "totalBroadcasts": 21,
+  "lastRun": "2026-11-15T19:53:18.164Z",
+  "totalBroadcasts": 22,
   "history": [
     {
       "id": "post-d001-morning",
@@ -188,6 +188,15 @@
       "postedAt": "2026-11-14T23:13:00.169Z",
       "mainTweetId": "2121743196493426947",
       "replyTweetId": "2121743208363270320",
+      "simulated": false,
+      "retweetedBy3K": true
+    },
+    {
+      "id": "post-d011-afternoon",
+      "category": "mcp-ecosystem",
+      "postedAt": "2026-11-15T19:53:18.164Z",
+      "mainTweetId": "2122055329295065428",
+      "replyTweetId": "2122055340753883222",
       "simulated": false,
       "retweetedBy3K": true
     }
