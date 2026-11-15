@@ -4,9 +4,48 @@
  * LLMO Crawlers, Polar Express Checkouts, and Polar Webhooks with ZERO PII.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { AnalyticsEvent } from './analyticsTypes';
 
 const MAX_SERVER_BUFFER = 2000;
+
+function getPersistencePath(): string {
+  try {
+    if (fs.existsSync('/tmp')) {
+      return '/tmp/promptshift_telemetry.json';
+    }
+  } catch {
+    // fallback
+  }
+  return path.join(os.tmpdir(), 'promptshift_telemetry.json');
+}
+
+function loadPersistedBuffer(): AnalyticsEvent[] {
+  try {
+    const filePath = getPersistencePath();
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore read errors
+  }
+  return [];
+}
+
+function savePersistedBuffer(buffer: AnalyticsEvent[]): void {
+  try {
+    const filePath = getPersistencePath();
+    fs.writeFileSync(filePath, JSON.stringify(buffer.slice(0, 500)), 'utf-8');
+  } catch {
+    // Ignore write errors on read-only environments
+  }
+}
 
 declare global {
   // eslint-disable-next-line no-var
@@ -15,7 +54,7 @@ declare global {
 
 function getBuffer(): AnalyticsEvent[] {
   if (!globalThis.__promptshiftTelemetryBuffer) {
-    globalThis.__promptshiftTelemetryBuffer = [];
+    globalThis.__promptshiftTelemetryBuffer = loadPersistedBuffer();
   }
   return globalThis.__promptshiftTelemetryBuffer;
 }
@@ -36,6 +75,8 @@ export class ServerTelemetryStore {
       buffer.splice(MAX_SERVER_BUFFER);
     }
 
+    savePersistedBuffer(buffer);
+
     return enriched;
   }
 
@@ -46,5 +87,6 @@ export class ServerTelemetryStore {
   public static clear(): void {
     const buffer = getBuffer();
     buffer.length = 0;
+    savePersistedBuffer(buffer);
   }
 }

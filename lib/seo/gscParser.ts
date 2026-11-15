@@ -85,10 +85,10 @@ export const CHAT_SEO_TARGET_MATRIX: ChatSeoTargetKeyword[] = [
     keyword: 'cursor rules library',
     searchIntent: 'Informational',
     targetPosition: '#2',
-    targetUrl: '/rules-library',
+    targetUrl: '/discover',
     monthlySearchVolumeEst: 3600,
     status: 'Schema Deployed',
-    actionRecommended: 'Promote the 50+ master rules vault in Order Bump and backlinks toward /rules-library.',
+    actionRecommended: 'Promote the 50+ master rules vault in Order Bump and backlinks toward /discover.',
   },
   {
     id: 'kw-5',

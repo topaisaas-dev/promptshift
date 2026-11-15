@@ -33,6 +33,7 @@ export interface PolarPlanMetrics {
   paidOrdersCount: number;
   compOrdersCount: number;
   grossRevenueUsd: number;
+  checkoutsWithEmail: number;
 }
 
 export interface PolarLiveCommercialSnapshot {
@@ -40,6 +41,7 @@ export interface PolarLiveCommercialSnapshot {
   fetchedAt: string;
   currency: 'USD';
   totalCheckoutsInitiated: number;
+  totalCheckoutsWithEmail: number;
   totalPaidOrders: number;
   totalCompTestOrders: number;
   totalNetRevenueUsd: number;
@@ -238,6 +240,7 @@ export class PolarService {
       paidOrdersCount: 0,
       compOrdersCount: 0,
       grossRevenueUsd: 0,
+      checkoutsWithEmail: 0,
     });
 
     const snapshot: PolarLiveCommercialSnapshot = {
@@ -245,6 +248,7 @@ export class PolarService {
       fetchedAt: new Date().toISOString(),
       currency: 'USD',
       totalCheckoutsInitiated: 0,
+      totalCheckoutsWithEmail: 0,
       totalPaidOrders: 0,
       totalCompTestOrders: 0,
       totalNetRevenueUsd: 0,
@@ -336,6 +340,12 @@ export class PolarService {
           if (chk.metadata?.project_name === 'diagnostic_test') continue;
           snapshot.byPlan[plan].checkoutsInitiated += 1;
           snapshot.totalCheckoutsInitiated += 1;
+
+          const email = chk.customer_email || chk.customer?.email;
+          if (email && String(email).includes('@')) {
+            snapshot.byPlan[plan].checkoutsWithEmail += 1;
+            snapshot.totalCheckoutsWithEmail += 1;
+          }
 
           const st = String(chk.status || '').toLowerCase();
           if (st === 'expired') snapshot.byPlan[plan].checkoutsExpired += 1;

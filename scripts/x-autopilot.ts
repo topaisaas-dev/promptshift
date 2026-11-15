@@ -346,7 +346,7 @@ export async function runAutopilot(): Promise<void> {
   console.log(`Loaded Post Catalog: ${catalog.length} annual posts available (${postedIds.size} already broadcast)`);
 
   // Format Reply Tweet with Full Omnichannel UTM Tracking (utm_campaign=devrel_daily)
-  const utmUrl = `https://promptshift.dev?utm_source=twitter&utm_medium=social&utm_campaign=devrel_daily&utm_content=${candidate.id}`;
+  const utmUrl = `https://promptshift.dev?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${candidate.id}`;
   const formattedReplyTweet = candidate.replyTweet.includes('utm_campaign=')
     ? candidate.replyTweet
     : candidate.replyTweet.replace(/https:\/\/promptshift\.dev(?!\?)/g, utmUrl);
@@ -405,7 +405,7 @@ export async function runAutopilot(): Promise<void> {
     }
     console.log(`✅ Auto-reply published! ID: ${replyResult.id}`);
 
-    // Step 3: 3K Booster Repost from @JeanYvesGarcin (with propagation retry)
+    // Step 3: 3K Booster Repost from @PromptShift_Booster (with propagation retry)
     const boosterKey = process.env.X_3K_API_KEY || process.env.BOOSTER_API_KEY;
     const boosterSecret = process.env.X_3K_API_SECRET || process.env.BOOSTER_API_SECRET;
     const boosterToken = process.env.X_3K_ACCESS_TOKEN || process.env.BOOSTER_ACCESS_TOKEN;
@@ -414,7 +414,7 @@ export async function runAutopilot(): Promise<void> {
 
     let retweetedByBooster = false;
     if (boosterKey && boosterSecret && boosterToken && boosterTokenSecret) {
-      console.log('📡 Step 3: Triggering 3K Booster Repost from @JeanYvesGarcin...');
+      console.log('📡 Step 3: Triggering 3K Booster Repost from @PromptShift_Booster...');
       const boosterCreds = {
         consumerKey: boosterKey,
         consumerSecret: boosterSecret,
@@ -426,7 +426,7 @@ export async function runAutopilot(): Promise<void> {
           await new Promise(r => setTimeout(r, attempt === 1 ? 4000 : 6000));
           const rtResult = await retweet(mainResult.id, boosterCreds, boosterUserId);
           retweetedByBooster = rtResult.retweeted;
-          console.log(`✅ @JeanYvesGarcin reposted successfully on attempt ${attempt}! (retweeted: ${retweetedByBooster})`);
+          console.log(`✅ @PromptShift_Booster reposted successfully on attempt ${attempt}! (retweeted: ${retweetedByBooster})`);
           break;
         } catch (err: any) {
           if (attempt === 2) {

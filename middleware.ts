@@ -16,7 +16,8 @@ const AGENT_DISCOVERY_LINKS = [
 ].join(', ');
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const pathname = request?.nextUrl?.pathname || '/';
+  const _sessionCookie = request?.cookies?.get?.('promptshift_session');
 
   // 0. Google Search Console Site Verification (serves both root and prefix /sitemap.xml/)
   if (
@@ -39,7 +40,7 @@ export function middleware(request: NextRequest) {
     }
 
     // AI Bot Crawler Detection & Inbound Telemetry
-    const ua = (request.headers.get('user-agent') || '').toLowerCase();
+    const ua = (request?.headers?.get?.('user-agent') || '').toLowerCase();
     const isAiCrawler =
       ua.includes('gptbot') ||
       ua.includes('oai-searchbot') ||
@@ -68,8 +69,8 @@ export function middleware(request: NextRequest) {
             channel: 'llmo',
             path: pathname,
             botName,
-            userAgentSnippet: (request.headers.get('user-agent') || '').slice(0, 60),
-            country: request.headers.get('x-vercel-ip-country') || request.headers.get('cf-ipcountry') || 'US',
+            userAgentSnippet: (request?.headers?.get?.('user-agent') || '').slice(0, 60),
+            country: request?.headers?.get?.('x-vercel-ip-country') || request?.headers?.get?.('cf-ipcountry') || 'US',
           }),
         }).catch(() => {});
       } catch {

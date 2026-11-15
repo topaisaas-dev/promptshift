@@ -4,7 +4,7 @@
  * Tone: simple, direct, commercial English. Every main tweet ends with a clear
  * call-to-action strictly pointing to the reply ("👇 Link in the reply", "Link in the reply 👇").
  * The main tweet never relies on bio links and never contains a URL (keeps full X reach,
- * especially when reposted by @jeanyvesgarcin). The auto-reply carries the offer +
+ * especially when reposted by @promptshift_dev). The auto-reply carries the offer +
  * https://promptshift.dev.
  *
  * Posts already broadcast (listed in data/x_posts_history.json) are preserved

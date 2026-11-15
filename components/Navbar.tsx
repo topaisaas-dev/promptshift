@@ -17,7 +17,7 @@ import { ClientVault, UserPlanTier } from '@/lib/storage/clientVault';
 export const Navbar: React.FC = () => {
   const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentPlan, setPaymentPlan] = useState<'single' | 'pro' | 'team'>('pro');
+  const [paymentPlan, setPaymentPlan] = useState<'single' | 'pro' | 'team'>('single');
   const [isPortalOpen, setIsPortalOpen] = useState(false);
   const [isGitHubActionOpen, setIsGitHubActionOpen] = useState(false);
   const [isSecurityWhitepaperOpen, setIsSecurityWhitepaperOpen] = useState(false);

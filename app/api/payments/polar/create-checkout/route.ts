@@ -20,10 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
-    let amountUsd = plan === 'single' ? 1.99 : plan === 'pro' ? 5.99 : 19.99;
-    if (includeOrderBump) {
-      amountUsd += 4.99;
-    }
+    const amountUsd = plan === 'single' ? 1.99 : plan === 'pro' ? 5.99 : 19.99;
 
     ServerTelemetryStore.record({
       type: 'checkout_initiated',

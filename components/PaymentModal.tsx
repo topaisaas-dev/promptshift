@@ -60,7 +60,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [lastInvoice, setLastInvoice] = useState<VaultInvoice | null>(null);
   const [emailError, setEmailError] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [includeOrderBump, setIncludeOrderBump] = useState(false);
+  const [includeOrderBump, setIncludeOrderBump] = useState(true);
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoError, setPromoError] = useState('');
 
@@ -118,15 +118,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const hasProject = Boolean(zipBase64 && zipBase64.trim().length > 0);
   const trimmedEmail = customerEmail.trim();
   const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail);
-  let displayPrice = isFreeBeta ? CurrencyManager.formatZero(currency) : tierPriceInfo.formattedTotal;
+  const displayPrice = isFreeBeta ? CurrencyManager.formatZero(currency) : tierPriceInfo.formattedTotal;
   const bumpPriceFormatted = currency === 'EUR' ? '4.90 €' : '$4.99';
-  if (includeOrderBump && !isFreeBeta) {
-    if (selectedPlan === 'single') {
-      displayPrice = currency === 'EUR' ? '6.89 €' : '$6.98';
-    } else {
-      displayPrice = `${tierPriceInfo.formattedTotal} + Pack (${bumpPriceFormatted})`;
-    }
-  }
 
   const handlePolarCheckout = async () => {
     // Email is OPTIONAL for 1-Click Express Polar Checkout (Apple Pay / Google Pay / Link).
@@ -357,7 +350,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            {/* Playbook Section 5 Order Bump (+ $4.99): 50+ Master Rules & Prompts Vault */}
+            {/* Included Bonus Vault ($4.99 Value — Free with Pass): 50+ Master Rules & Prompts Vault */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border border-amber-500/50 flex items-start gap-3 transition-all hover:border-amber-400">
               <input
                 id="order-bump-checkbox"
@@ -366,7 +359,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 onChange={(e) => {
                   setIncludeOrderBump(e.target.checked);
                   if (e.target.checked) {
-                    AnalyticsTracker.track({ type: 'order_bump_selected', planTier: selectedPlan, amountUsd: 4.99, currency });
+                    AnalyticsTracker.track({ type: 'order_bump_selected', planTier: selectedPlan, amountUsd: 0, currency });
                   }
                 }}
                 className="mt-1 w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-950 border-slate-700 cursor-pointer accent-amber-500"
@@ -374,14 +367,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <label htmlFor="order-bump-checkbox" className="flex-1 cursor-pointer select-none">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                    <span>⚡ RECOMMENDED ADD-ON: 50+ Master Rules &amp; Prompts Vault</span>
+                    <span>⚡ INCLUDED BONUS: 50+ Master Rules &amp; Prompts Vault</span>
                   </span>
                   <span className="text-xs font-mono font-black text-emerald-400 whitespace-nowrap bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                    +{bumpPriceFormatted}
+                    FREE ({bumpPriceFormatted} Value)
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  Unlock instant direct access to the 50+ battle-tested gold-standard production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; Security Guardrails) ready-to-use for Cursor, Claude Code, Copilot &amp; Windsurf.
+                  Included at $0.00 extra: instant direct download of the 50+ battle-tested gold-standard production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; Security Guardrails) ready-to-use for Cursor, Claude Code, Copilot &amp; Windsurf.
                 </p>
               </label>
             </div>
@@ -543,7 +536,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
               <a
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  'Just synced my AI coding rules across Cursor, Claude Code & Windsurf in 2 seconds with @PromptShift (https://promptshift.dev)! 100% in-RAM, zero data retention & 98.5% AST parity. 🔥 #Cursor #ClaudeCode #DevTools'
+                  'Just synced my AI coding rules across Cursor, Claude Code & Windsurf in 2 seconds with @PromptShift (https://promptshift.dev?utm_source=x&utm_medium=social&utm_campaign=viral_share)! 100% in-RAM, zero data retention & 98.5% AST parity. 🔥 #Cursor #ClaudeCode #DevTools'
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

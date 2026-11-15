@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Zap,
   ShieldCheck,
@@ -146,19 +147,23 @@ export default function HomePage() {
 
     // 1. Pre-select source & target when arriving from /convert/[pair] SEO landing pages
     const srcParam = params.get('source')?.toLowerCase();
-    const tgtParam = params.get('target')?.toLowerCase() as
-      | 'claude'
-      | 'cursor'
-      | 'openai'
-      | 'gemini'
-      | undefined;
+    const rawTgt = params.get('target')?.toLowerCase();
+    let tgtParam: 'claude' | 'cursor' | 'openai' | 'gemini' | undefined;
+    if (rawTgt) {
+      if (rawTgt === 'windsurf') tgtParam = 'cursor';
+      else if (rawTgt === 'copilot') tgtParam = 'openai';
+      else if (rawTgt === 'antigravity') tgtParam = 'gemini';
+      else if (['claude', 'cursor', 'openai', 'gemini'].includes(rawTgt)) {
+        tgtParam = rawTgt as any;
+      }
+    }
 
-    if (tgtParam && ['claude', 'cursor', 'openai', 'gemini'].includes(tgtParam)) {
+    if (tgtParam) {
       setActiveTarget(tgtParam);
       if (srcParam) {
-        setActivePairSlug(`${srcParam}-to-${tgtParam}`);
+        setActivePairSlug(`${srcParam}-to-${rawTgt || tgtParam}`);
         const matchingPreset = DEMO_PRESETS.find(
-          (p) => p.sourceKey === srcParam || p.targetKey === tgtParam
+          (p) => p.sourceKey === srcParam || p.targetKey === tgtParam || p.targetKey === rawTgt
         );
         if (matchingPreset) setActivePreset(matchingPreset);
       }
@@ -172,6 +177,8 @@ export default function HomePage() {
     if (checkoutStatus === 'success') {
       (async () => {
         let isVerified = true;
+        let verifiedPlan: 'single' | 'pro' | 'team' | undefined;
+        let verifiedAmountUsd: string | undefined;
         if (checkoutId && checkoutId !== '{CHECKOUT_ID}') {
           try {
             const verifyRes = await fetch(
@@ -180,6 +187,10 @@ export default function HomePage() {
             if (verifyRes.ok) {
               const verifyJson = await verifyRes.json();
               isVerified = Boolean(verifyJson.verified);
+              if (verifyJson.plan) verifiedPlan = verifyJson.plan;
+              if (typeof verifyJson.amountUsd === 'number') {
+                verifiedAmountUsd = verifyJson.amountUsd.toFixed(2);
+              }
             }
           } catch {
             isVerified = true;
@@ -208,8 +219,9 @@ export default function HomePage() {
           // Ignore
         }
 
-        const validPlan: 'single' | 'pro' | 'team' = ['single', 'pro', 'team'].includes(returnedPlan)
-          ? returnedPlan
+        const candidatePlan = verifiedPlan || returnedPlan;
+        const validPlan: 'single' | 'pro' | 'team' = ['single', 'pro', 'team'].includes(candidatePlan)
+          ? candidatePlan
           : 'single';
 
         // Unlock Sovereign Vault & record official invoice
@@ -224,7 +236,9 @@ export default function HomePage() {
             : validPlan === 'pro'
             ? 'Pro Developer Subscription'
             : 'Single Project Pass';
-        const usdPrice = validPlan === 'team' ? '19.99' : validPlan === 'pro' ? '5.99' : '1.99';
+        const usdPrice =
+          verifiedAmountUsd ||
+          (validPlan === 'team' ? '19.99' : validPlan === 'pro' ? '5.99' : '1.99');
 
         ClientVault.saveInvoice({
           orderId: checkoutId && checkoutId !== '{CHECKOUT_ID}' ? checkoutId : `POLAR-${Date.now()}`,
@@ -1106,6 +1120,62 @@ export default function HomePage() {
             >
               Drop Your Repo Free
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* POPULAR AI MIGRATION BRIDGES & CORPORATE CONTACT */}
+      <section className="py-12 max-w-6xl mx-auto px-6 border-t border-slate-800/80 text-xs">
+        <div className="flex flex-col gap-6">
+          <div>
+            <span className="font-bold uppercase tracking-wider text-cyan-400 block mb-2">
+              Popular AI Migration Bridges
+            </span>
+            <div className="flex flex-wrap gap-2 text-slate-400">
+              <Link href="/discover" className="hover:text-cyan-300 font-semibold underline">
+                Browse All 20 Bridges (/discover)
+              </Link>
+              <span>•</span>
+              <Link href="/convert/cursor-to-claude" className="hover:text-cyan-300">
+                Cursor to Claude Code
+              </Link>
+              <span>•</span>
+              <Link href="/convert/claude-to-cursor" className="hover:text-cyan-300">
+                Claude to Cursor
+              </Link>
+              <span>•</span>
+              <Link href="/convert/cursor-to-copilot" className="hover:text-cyan-300">
+                Cursor to Copilot
+              </Link>
+              <span>•</span>
+              <Link href="/convert/windsurf-to-cursor" className="hover:text-cyan-300">
+                Windsurf to Cursor
+              </Link>
+              <span>•</span>
+              <Link href="/convert/gemini-to-cursor" className="hover:text-cyan-300">
+                Gemini to Cursor
+              </Link>
+              <span>•</span>
+              <Link href="/convert/antigravity-to-claude" className="hover:text-cyan-300">
+                Antigravity to Claude
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-800/60 text-slate-400">
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-slate-300">Official Inquiries &amp; Compliance:</span>
+              <a href="mailto:contact@promptshift.dev" className="hover:text-cyan-400 transition-colors">
+                contact@promptshift.dev
+              </a>
+              <span>•</span>
+              <a href="mailto:compliance@promptshift.dev" className="hover:text-cyan-400 transition-colors">
+                compliance@promptshift.dev
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500 font-mono">
+              <span>Sovereign In-RAM • Zero Server Retention</span>
+            </div>
           </div>
         </div>
       </section>

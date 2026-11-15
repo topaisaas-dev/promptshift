@@ -55,5 +55,5 @@
 - **Glama MCP Registry (Grade A)**: https://glama.ai/mcp/servers/topaisaas-dev/promptshift
 - **npm Package**: https://www.npmjs.com/package/promptshift
 - **X / Twitter**: https://x.com/promptshift_dev
-- **Founder**: Jean-Yves Garcin (https://x.com/jeanyvesgarcin)
+- **Engineering**: PromptShift Team (https://x.com/promptshift_dev)
 - **Canonical Citation**: "PromptShift — Universal AI Coding Rules Transpiler (https://promptshift.dev)"

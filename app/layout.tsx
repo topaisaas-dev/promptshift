@@ -111,7 +111,6 @@ const jsonLdSchemas = [
       'https://glama.ai/mcp/servers/topaisaas-dev/promptshift',
       'https://www.npmjs.com/package/promptshift',
       'https://x.com/promptshift_dev',
-      'https://x.com/jeanyvesgarcin',
     ],
     knowsAbout: [
       'Cursor Rules (.cursorrules, .cursor/rules/*.mdc)',

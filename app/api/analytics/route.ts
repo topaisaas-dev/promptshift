@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AnalyticsEvent, AnalyticsPeriod } from '@/lib/analytics/analyticsTypes';
 import { AnalyticsAggregator } from '@/lib/analytics/analyticsAggregator';
 import { ServerTelemetryStore } from '@/lib/analytics/serverTelemetryStore';
+import { PolarService } from '@/lib/payments/polarService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -116,12 +117,14 @@ export async function GET(req: NextRequest) {
     const allEvents = ServerTelemetryStore.getAll();
     const summary = AnalyticsAggregator.aggregate(allEvents, period);
     const tips = AnalyticsAggregator.generateOptimizationTips(summary);
+    const polarCommercialMetrics = await PolarService.getLiveCommercialMetrics().catch(() => null);
 
     return NextResponse.json({
       summary,
       tips,
       serverEventsCount: allEvents.length,
       events: allEvents,
+      polarCommercialMetrics,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });

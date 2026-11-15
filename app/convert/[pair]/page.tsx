@@ -85,7 +85,7 @@ export default async function ConversionPairPage({ params }: PageProps) {
             '@type': 'ListItem',
             position: 2,
             name: 'Converters',
-            item: 'https://promptshift.dev/#converters',
+            item: 'https://promptshift.dev/discover',
           },
           {
             '@type': 'ListItem',

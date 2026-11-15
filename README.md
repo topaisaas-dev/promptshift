@@ -157,7 +157,7 @@ If you use or reference PromptShift in your research, tools, or articles, please
 
 ```bibtex
 @software{promptshift2026,
-  author = {Garcin, Jean-Yves and TopAI SaaS Team},
+  author = {PromptShift Engineering and TopAI SaaS Team},
   title = {PromptShift: Universal AST Transpiler & Synchronization Bridge for AI Coding Rules},
   url = {https://promptshift.dev},
   year = {2026},
