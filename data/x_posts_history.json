@@ -1,6 +1,6 @@
 {
-  "lastRun": "2026-11-16T23:28:05.904Z",
-  "totalBroadcasts": 23,
+  "lastRun": "2026-11-17T22:32:12.918Z",
+  "totalBroadcasts": 24,
   "history": [
     {
       "id": "post-d001-morning",
@@ -206,6 +206,15 @@
       "postedAt": "2026-11-16T23:28:05.904Z",
       "mainTweetId": "2122471771366690820",
       "replyTweetId": "2122471783387574587",
+      "simulated": false,
+      "retweetedBy3K": true
+    },
+    {
+      "id": "post-d012-afternoon",
+      "category": "syntax-traps",
+      "postedAt": "2026-11-17T22:32:12.918Z",
+      "mainTweetId": "2122820096431124793",
+      "replyTweetId": "2122820108015862269",
       "simulated": false,
       "retweetedBy3K": true
     }
