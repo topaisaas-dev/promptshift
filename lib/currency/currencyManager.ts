@@ -39,8 +39,8 @@ export const CURRENCIES: Record<SupportedCurrency, CurrencyConfig> = {
     flag: '🇪🇺',
     rates: {
       single: 1.99,
-      proMonthly: 5.49,
-      teamMonthly: 18.49,
+      proMonthly: 5.99,
+      teamMonthly: 19.99,
     },
   },
   GBP: {
@@ -171,6 +171,21 @@ export class CurrencyManager {
       return `${amount.toFixed(2).replace('.', ',')} ${config.symbol}`;
     }
     return `${config.symbol}${amount.toFixed(2)}`;
+  }
+
+  /**
+   * Formats the included 50+ Master Rules Vault value ($4.99 USD equivalent) in active currency
+   */
+  public static getBonusValueFormatted(currency: SupportedCurrency = 'USD'): string {
+    const bonusRates: Record<SupportedCurrency, number> = {
+      USD: 4.99,
+      EUR: 4.99,
+      GBP: 3.99,
+      CAD: 6.79,
+      AUD: 7.49,
+      JPY: 749,
+    };
+    return this.format(bonusRates[currency] ?? 4.99, currency);
   }
 
   /**

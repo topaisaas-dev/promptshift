@@ -28,7 +28,8 @@ interface DropzoneProps {
     project: CanonicalProject,
     targetPlatform: 'claude' | 'openai' | 'cursor' | 'gemini',
     isSlicedStarter?: boolean,
-    originalTotalFiles?: number
+    originalTotalFiles?: number,
+    fullProject?: CanonicalProject
   ) => void;
   onRequirePaywallUnlock?: (
     fullProject: CanonicalProject,
@@ -176,10 +177,11 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     rulesList: { name: string; content: string }[],
     knowledgeBase: { filename: string; content_text: string; mime_type: string; size_bytes: number }[],
     isSlicedStarter: boolean = false,
-    originalTotalFiles?: number
+    originalTotalFiles?: number,
+    fullProject?: CanonicalProject
   ) => {
     const canonical = buildCanonicalProject(projectName, masterPrompt, rulesList, knowledgeBase);
-    onProjectReady(canonical, targetPlatform, isSlicedStarter, originalTotalFiles);
+    onProjectReady(canonical, targetPlatform, isSlicedStarter, originalTotalFiles, fullProject);
   };
 
   const handleModeSwitch = (mode: 'starter' | 'pro') => {
@@ -418,7 +420,8 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       slicedRules,
       slicedKb,
       true,
-      overlimitState.totalCount
+      overlimitState.totalCount,
+      fullProj
     );
 
     if (onRequirePaywallUnlock) {
@@ -429,6 +432,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
   const handleResolveKeepStarter = () => {
     if (!overlimitState) return;
+    const fullProj = buildCanonicalProject(
+      overlimitState.projectName,
+      overlimitState.masterPrompt,
+      overlimitState.rulesList,
+      overlimitState.knowledgeBase
+    );
     const masterSlots = overlimitState.masterPrompt ? 1 : 0;
     const availableSlots = Math.max(0, freeLimit - masterSlots);
     const slicedRules = overlimitState.rulesList.slice(0, availableSlots);
@@ -441,7 +450,8 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       slicedRules,
       slicedKb,
       true,
-      overlimitState.totalCount
+      overlimitState.totalCount,
+      fullProj
     );
     setOverlimitState(null);
   };

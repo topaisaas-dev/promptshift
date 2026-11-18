@@ -1,32 +1,40 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { CONVERSION_PAIRS } from '@/lib/seo/conversionPairs';
+import { isAdminAuthorized } from '@/lib/auth/adminAuth';
 
 const INDEXNOW_KEY = 'c74384d4fa8448eb97a151b75249a05c';
 const HOST = 'promptshift.dev';
 
-const KEY_URLS = [
-  'https://promptshift.dev',
-  'https://promptshift.dev/cli',
-  'https://promptshift.dev/convert/cursor-to-claude',
-  'https://promptshift.dev/convert/claude-to-cursor',
-  'https://promptshift.dev/convert/gemini-to-cursor',
-  'https://promptshift.dev/convert/gemini-to-claude',
-  'https://promptshift.dev/convert/cursor-to-gemini',
-  'https://promptshift.dev/convert/claude-to-gemini',
-  'https://promptshift.dev/convert/openai-to-cursor',
-  'https://promptshift.dev/convert/cursor-to-openai',
-  'https://promptshift.dev/convert/openai-to-claude',
-  'https://promptshift.dev/convert/claude-to-openai',
-  'https://promptshift.dev/convert/openai-to-gemini',
-  'https://promptshift.dev/convert/gemini-to-openai',
-];
+function buildVerifiedKeyUrls(): string[] {
+  const coreUrls = [
+    `https://${HOST}/`,
+    `https://${HOST}/discover`,
+    `https://${HOST}/cli`,
+    `https://${HOST}/security`,
+    `https://${HOST}/terms`,
+    `https://${HOST}/privacy`,
+  ];
+  const pairUrls = Object.keys(CONVERSION_PAIRS).map(
+    (slug) => `https://${HOST}/convert/${slug}`
+  );
+  return [...coreUrls, ...pairUrls];
+}
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    if (!isAdminAuthorized(req)) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
+    const urlList = buildVerifiedKeyUrls();
     const payload = {
       host: HOST,
       key: INDEXNOW_KEY,
       keyLocation: `https://${HOST}/${INDEXNOW_KEY}.txt`,
-      urlList: KEY_URLS,
+      urlList,
     };
 
     const res = await fetch('https://api.indexnow.org/indexnow', {
@@ -40,8 +48,8 @@ export async function POST() {
     if (res.status === 200 || res.status === 202) {
       return NextResponse.json({
         success: true,
-        message: `IndexNow pinged successfully! Submitted ${KEY_URLS.length} URLs to Bing, Copilot & AI search engines.`,
-        urlCount: KEY_URLS.length,
+        message: `IndexNow pinged successfully! Submitted ${urlList.length} verified URLs to Bing, Copilot & AI search engines.`,
+        urlCount: urlList.length,
       });
     }
 
@@ -59,11 +67,12 @@ export async function POST() {
 }
 
 export async function GET() {
+  const urlList = buildVerifiedKeyUrls();
   return NextResponse.json({
     protocol: 'IndexNow',
     engines: ['Bing', 'Microsoft Copilot', 'ChatGPT Search', 'DuckDuckGo', 'Yandex', 'Seznam'],
     key: INDEXNOW_KEY,
     keyLocation: `https://${HOST}/${INDEXNOW_KEY}.txt`,
-    urlCount: KEY_URLS.length,
+    urlCount: urlList.length,
   });
 }

@@ -31,7 +31,7 @@ async function runTests() {
   );
   console.log('✅ [1/4] PolarService.isValidLicenseKey() anti-bypass validation passed.');
 
-  // 2. Permanent Checkout Links Integrity
+  // 2. Permanent Checkout Links & Fail-Closed Checkout Verification
   for (const plan of ['single', 'pro', 'team'] as const) {
     const link = PolarService.getPermanentCheckoutLink(plan);
     assert.ok(
@@ -39,7 +39,11 @@ async function runTests() {
       `Permanent link for ${plan} must use buy.polar.sh/polar_cl_*, got: ${link}`
     );
   }
-  console.log('✅ [2/4] PolarService permanent HTTP-307 buy.polar.sh links verified.');
+  for (const fakeId of ['', '{CHECKOUT_ID}', 'polar_direct_999']) {
+    const checkRes = await PolarService.verifyCheckoutSession(fakeId);
+    assert.strictEqual(checkRes.verified, false, `Checkout bypass "${fakeId}" must fail closed`);
+  }
+  console.log('✅ [2/4] PolarService permanent HTTP-307 buy.polar.sh links & fail-closed verification passed.');
 
   // 3. ServerTelemetryStore & CheckCheckService 4-Matrix Verification
   ServerTelemetryStore.record({
@@ -106,12 +110,15 @@ async function runTests() {
   assert.strictEqual(csvLines.length, 17, `Expected 17 CSV lines (header + 16 rows), got ${csvLines.length}`);
   console.log('✅ [3/4] CheckCheckService 4-matrix report (16 rails, 5 radars, 7 funnel stages + CSV) verified.');
 
-  // 4. Active Codebase Scan for Legacy Broken 404 Polar URLs
+  // 4. Active Codebase Scan for Legacy Broken 404 Polar URLs, Public Promo Leaks & Hardcoded Secrets
   const brokenPatterns = [
     'https://polar.sh/checkout/3e74e0dd',
     'https://polar.sh/checkout/f646306b',
     'https://polar.sh/checkout/9e8ca309',
     'Free Pro Pass Available',
+    'e.g. SMOKETEST',
+    'polar_oat_',
+    'whsec_7fmNAS',
   ];
 
   const activeDirs = ['app', 'lib', 'components', 'packages', 'public'];

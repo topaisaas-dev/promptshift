@@ -10,7 +10,6 @@ Allow: /api/openapi.json
 Allow: /api/llms/schema
 Allow: /.well-known/
 Disallow: /admin
-Disallow: /bouboule
 Disallow: /api/
 
 # Generative Engine Optimization (GEO) & AI Search Engines
@@ -24,7 +23,6 @@ Allow: /api/openapi.json
 Allow: /api/llms/schema
 Allow: /.well-known/
 Disallow: /admin
-Disallow: /bouboule
 Disallow: /api/
 
 User-agent: PerplexityBot
@@ -36,7 +34,6 @@ Allow: /api/openapi.json
 Allow: /api/llms/schema
 Allow: /.well-known/
 Disallow: /admin
-Disallow: /bouboule
 Disallow: /api/
 
 User-agent: ClaudeBot
@@ -48,7 +45,6 @@ Allow: /api/openapi.json
 Allow: /api/llms/schema
 Allow: /.well-known/
 Disallow: /admin
-Disallow: /bouboule
 Disallow: /api/
 
 User-agent: Google-Extended
@@ -59,7 +55,6 @@ Allow: /api/openapi.json
 Allow: /api/llms/schema
 Allow: /.well-known/
 Disallow: /admin
-Disallow: /bouboule
 Disallow: /api/
 
 # XML Sitemap

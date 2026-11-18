@@ -80,6 +80,7 @@ export interface AnalyticsEvent {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  utmContent?: string;
   utmTerm?: string;
   botName?: string;
   inferredIntent?: string;
@@ -90,16 +91,17 @@ export interface AnalyticsEvent {
 }
 
 export interface EdgeDeliveryStats {
-  cloudflareCacheHitRatio: number; // e.g. 94.2%
-  edgeBandwidthSavedMB: number; // e.g. 48.6 MB
-  averageEdgeLatencyMs: number; // e.g. 18 ms
+  cloudflareCacheHitRatio: number | null; // External Cloudflare dashboard metric (null when unavailable in-RAM)
+  edgeBandwidthSavedMB: number | null;
+  averageEdgeLatencyMs: number | null;
   wafThreatsBlocked: number;
   aiBotsAllowedCount: number; // ClaudeBot, GPTBot, PerplexityBot
   vercelServerlessInvocations: number;
   vercelAverageExecutionDurationMs: number;
-  coreWebVitalsLcpSec: number;
-  coreWebVitalsInpMs: number;
-  coreWebVitalsCls: number;
+  coreWebVitalsLcpSec: number | null;
+  coreWebVitalsInpMs: number | null;
+  coreWebVitalsCls: number | null;
+  dataSourceNote?: string;
 }
 
 export interface ArbitrageDecisionItem {

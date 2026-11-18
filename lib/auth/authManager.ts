@@ -273,10 +273,10 @@ export class AuthManager {
 
     const accounts = this.getAccounts();
     if (!accounts[normalizedEmail]) {
-      // To prevent user enumeration attacks, still display a friendly generic message
+      // To prevent user enumeration attacks, return generic success without storing a valid token
       return {
         success: true,
-        code: '123456',
+        code: undefined,
         error: undefined,
       };
     }

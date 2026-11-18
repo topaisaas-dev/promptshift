@@ -7,6 +7,24 @@ export const metadata: Metadata = {
   title: 'Enterprise Security Architecture & DPA | PromptShift.dev',
   description:
     'Technical whitepaper, threat model, and GDPR Article 28 Data Processing Agreement (DPA) specifications for PromptShift.dev enterprise engineering teams.',
+  alternates: {
+    canonical: 'https://promptshift.dev/security',
+  },
+  openGraph: {
+    title: 'Enterprise Security Architecture & DPA | PromptShift.dev',
+    description:
+      'In-RAM ephemeral processing, 15+ secret sanitizer rules, Zip Slip/Bomb defenses, and GDPR Article 28 DPA.',
+    url: 'https://promptshift.dev/security',
+    siteName: 'PromptShift',
+    type: 'website',
+    images: [{ url: '/assets/official_logo.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Enterprise Security Architecture & DPA | PromptShift.dev',
+    description: 'Zero-retention in-RAM secret redaction and enterprise DPA whitepaper.',
+    images: ['/assets/official_logo.jpg'],
+  },
 };
 
 export default function SecurityPage() {

@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailDispatcher, SendEmailPayload } from '@/lib/email/emailDispatcher';
 import { ServerTelemetryStore } from '@/lib/analytics/serverTelemetryStore';
+import { isAdminAuthorized } from '@/lib/auth/adminAuth';
 
 export async function POST(req: NextRequest) {
   try {
+    // Strictly require server-side admin auth to prevent open email relay abuse.
+    // Verified Polar order emails are dispatched directly server-side inside /api/webhooks/polar.
+    if (!isAdminAuthorized(req)) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Administrative credentials required.' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
+
     const body = (await req.json()) as SendEmailPayload;
 
     if (!body || !body.email || !body.action) {

@@ -10,6 +10,22 @@ const STORAGE_KEY = 'promptshift_analytics_events';
 const MAX_LOCAL_EVENTS = 500;
 const SOCIAL_STORAGE_KEY = 'promptshift_social_source';
 const CAMPAIGN_STORAGE_KEY = 'promptshift_social_campaign';
+const ATTRIBUTION_STORAGE_KEY = 'promptshift_attribution_v1';
+const ATTRIBUTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export interface StoredAttribution {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  channel?: TelemetryChannel;
+  referrerDomain?: string;
+  landingPath?: string;
+  socialNetwork?: SocialNetworkId;
+  campaignOrPost?: string;
+  capturedAt: number;
+}
 
 export class AnalyticsTracker {
   /**
@@ -178,10 +194,110 @@ export class AnalyticsTracker {
     try {
       const socialNetwork = (sessionStorage.getItem(SOCIAL_STORAGE_KEY) as SocialNetworkId) || undefined;
       const campaignOrPost = sessionStorage.getItem(CAMPAIGN_STORAGE_KEY) || undefined;
-      return { socialNetwork, campaignOrPost };
+      if (socialNetwork || campaignOrPost) {
+        return { socialNetwork, campaignOrPost };
+      }
+      const attr = this.getAttribution();
+      return { socialNetwork: attr?.socialNetwork, campaignOrPost: attr?.campaignOrPost };
     } catch {
       return {};
     }
+  }
+
+  /**
+   * Persists full first-touch / UTM attribution across sessionStorage + localStorage fallback
+   * so mobile WebViews (X, LinkedIn, Reddit, HN, Discord) retain attribution all the way to Polar Checkout.
+   */
+  public static saveAttribution(attr: Omit<StoredAttribution, 'capturedAt'>): void {
+    if (typeof window === 'undefined') return;
+    const hasSignal = Boolean(
+      attr.utmSource ||
+        attr.utmMedium ||
+        attr.utmCampaign ||
+        attr.utmContent ||
+        attr.utmTerm ||
+        attr.socialNetwork ||
+        (attr.channel && attr.channel !== 'web')
+    );
+    if (!hasSignal) return;
+
+    const existing = this.getAttribution();
+    const merged: StoredAttribution = {
+      utmSource: attr.utmSource || existing?.utmSource,
+      utmMedium: attr.utmMedium || existing?.utmMedium,
+      utmCampaign: attr.utmCampaign || existing?.utmCampaign,
+      utmContent: attr.utmContent || existing?.utmContent,
+      utmTerm: attr.utmTerm || existing?.utmTerm,
+      channel:
+        attr.channel && attr.channel !== 'web'
+          ? attr.channel
+          : existing?.channel || attr.channel || 'web',
+      referrerDomain:
+        attr.referrerDomain && attr.referrerDomain !== 'direct'
+          ? attr.referrerDomain
+          : existing?.referrerDomain || attr.referrerDomain,
+      landingPath: existing?.landingPath || attr.landingPath,
+      socialNetwork: attr.socialNetwork || existing?.socialNetwork,
+      campaignOrPost:
+        attr.campaignOrPost && attr.campaignOrPost !== 'Direct Bio / Post Link'
+          ? attr.campaignOrPost
+          : existing?.campaignOrPost || attr.campaignOrPost,
+      capturedAt: Date.now(),
+    };
+
+    const serialized = JSON.stringify(merged);
+    try {
+      sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, serialized);
+    } catch {
+      // ignore
+    }
+    try {
+      localStorage.setItem(ATTRIBUTION_STORAGE_KEY, serialized);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Retrieves persisted attribution (checks sessionStorage first, falls back to 7-day localStorage).
+   */
+  public static getAttribution(): StoredAttribution | null {
+    if (typeof window === 'undefined') return null;
+    const readStore = (storage: Storage): StoredAttribution | null => {
+      try {
+        const raw = storage.getItem(ATTRIBUTION_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as StoredAttribution;
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (parsed.capturedAt && Date.now() - parsed.capturedAt > ATTRIBUTION_TTL_MS) {
+          storage.removeItem(ATTRIBUTION_STORAGE_KEY);
+          return null;
+        }
+        return parsed;
+      } catch {
+        return null;
+      }
+    };
+
+    return readStore(sessionStorage) || readStore(localStorage);
+  }
+
+  /**
+   * Resolves the effective acquisition channel (preserving persisted UTM/social/LLMO channel
+   * across navigation instead of overwriting with generic 'web').
+   */
+  public static resolveEffectiveChannel(explicitPairSlug?: string, fallback: TelemetryChannel = 'web'): TelemetryChannel {
+    const attr = this.getAttribution();
+    if (attr?.channel && attr.channel !== 'web') {
+      return attr.channel;
+    }
+    if (attr?.socialNetwork) {
+      return attr.socialNetwork === 'x'
+        ? 'x_social'
+        : (`social_${attr.socialNetwork}` as TelemetryChannel);
+    }
+    if (explicitPairSlug) return 'pseo';
+    return fallback;
   }
 
   /**
@@ -238,9 +354,10 @@ export class AnalyticsTracker {
     if (typeof window === 'undefined') return;
 
     const attributed = this.getAttributedSocialSource();
+    const storedAttr = this.getAttribution();
     const deviceType = event.deviceType || this.detectDeviceType();
-    const socialNetwork = event.socialNetwork || attributed.socialNetwork;
-    const campaignOrPost = event.campaignOrPost || attributed.campaignOrPost;
+    const socialNetwork = event.socialNetwork || attributed.socialNetwork || storedAttr?.socialNetwork;
+    const campaignOrPost = event.campaignOrPost || attributed.campaignOrPost || storedAttr?.campaignOrPost;
 
     const fullEvent: AnalyticsEvent = {
       ...event,
@@ -251,6 +368,11 @@ export class AnalyticsTracker {
       deviceType,
       socialNetwork,
       campaignOrPost,
+      utmSource: event.utmSource || storedAttr?.utmSource,
+      utmMedium: event.utmMedium || storedAttr?.utmMedium,
+      utmCampaign: event.utmCampaign || storedAttr?.utmCampaign,
+      utmContent: event.utmContent || storedAttr?.utmContent,
+      utmTerm: event.utmTerm || storedAttr?.utmTerm,
     };
 
     // 1. Save locally in Sovereign Analytics store (real data only)
@@ -361,6 +483,21 @@ export class AnalyticsTracker {
       channel = 'cli';
     }
 
+    // Persist full attribution (including reddit/hn/producthunt/github/newsletter/google UTMs)
+    this.saveAttribution({
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmContent,
+      utmTerm,
+      channel,
+      referrerDomain,
+      landingPath: path,
+      socialNetwork: detectedSocial,
+      campaignOrPost: utmCampaign || utmContent ? campaignOrPost : undefined,
+    });
+
+    const effectiveChannel = channel !== 'web' ? channel : this.resolveEffectiveChannel(pairSlug, 'web');
     const inferredIntent = this.inferIntent(path, pairSlug);
     const sessionId = this.getSessionId();
     const deviceType = this.detectDeviceType();
@@ -369,7 +506,7 @@ export class AnalyticsTracker {
       type: 'page_view',
       path,
       pairSlug,
-      channel,
+      channel: effectiveChannel,
       country,
       currency: currency || 'USD',
       sessionId,
@@ -378,6 +515,7 @@ export class AnalyticsTracker {
       utmSource,
       utmMedium,
       utmCampaign,
+      utmContent,
       utmTerm,
       inferredIntent,
       socialNetwork: detectedSocial,
@@ -396,7 +534,7 @@ export class AnalyticsTracker {
   }): void {
     this.track({
       type: 'project_upload',
-      channel: meta.pairSlug ? 'pseo' : 'web',
+      channel: this.resolveEffectiveChannel(meta.pairSlug),
       pairSlug: meta.pairSlug,
       projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
       fileCount: meta.fileCount,
@@ -415,7 +553,7 @@ export class AnalyticsTracker {
   }): void {
     this.track({
       type: 'paywall_hit',
-      channel: meta.pairSlug ? 'pseo' : 'web',
+      channel: this.resolveEffectiveChannel(meta.pairSlug),
       pairSlug: meta.pairSlug,
       projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
       fileCount: meta.fileCount,
@@ -443,7 +581,7 @@ export class AnalyticsTracker {
   }): void {
     this.track({
       type: 'conversion_completed',
-      channel: meta.pairSlug ? 'pseo' : 'web',
+      channel: this.resolveEffectiveChannel(meta.pairSlug),
       pairSlug: meta.pairSlug,
       projectTitleAnon: this.anonymizeTitle(meta.projectTitle),
       sourcePlatform: meta.sourcePlatform,
@@ -471,7 +609,7 @@ export class AnalyticsTracker {
     const finalAmount = Number.isFinite(numericAmount) ? numericAmount : 1.99;
     this.track({
       type: 'checkout_initiated',
-      channel: pairSlug ? 'pseo' : 'web',
+      channel: this.resolveEffectiveChannel(pairSlug),
       pairSlug,
       planTier,
       amountUsd: finalAmount,
@@ -489,7 +627,7 @@ export class AnalyticsTracker {
   }): void {
     this.track({
       type: 'payment_completed',
-      channel: 'web',
+      channel: this.resolveEffectiveChannel(meta.pairSlug),
       pairSlug: meta.pairSlug,
       planTier: meta.planTier,
       amountUsd: meta.amountUsd,

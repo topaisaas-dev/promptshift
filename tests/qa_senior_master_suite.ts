@@ -155,7 +155,7 @@ async function runSeniorQASuite() {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           collectSourceFiles(full);
-        } else if (/\.(tsx|ts|jsx|js|json|md|txt|html|css)$/.test(entry.name)) {
+        } else if (/\.(tsx|ts|jsx|js|json|md|txt|html|css|yml|yaml|cff)$/.test(entry.name)) {
           filesToScan.push(full);
         }
       }

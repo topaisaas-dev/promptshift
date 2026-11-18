@@ -133,16 +133,19 @@ export default function HomePage() {
     [fullLockedProject, customProject, activePreset, activeTarget, activePairSlug]
   );
 
-  // Handle URL query parameters: SEO ?source=&target= AND Polar return ?checkout=success
+  // Handle URL query parameters: SEO ?source=&target= AND verified Polar return ?checkout=success
   useEffect(() => {
     CurrencyManager.initFromIp().then((curr) => setCurrency(curr));
-    AnalyticsTracker.trackPageView(
-      typeof window !== 'undefined' ? window.location.pathname : '/',
-      undefined,
-      CurrencyManager.getActiveCurrency()
-    );
 
-    if (typeof window === 'undefined') return;
+    const handleCurrencyChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<SupportedCurrency>;
+      if (customEvent.detail) setCurrency(customEvent.detail);
+    };
+    window.addEventListener('promptshift_currency_changed', handleCurrencyChanged);
+
+    if (typeof window === 'undefined') {
+      return () => window.removeEventListener('promptshift_currency_changed', handleCurrencyChanged);
+    }
     const params = new URLSearchParams(window.location.search);
 
     // 1. Pre-select source & target when arriving from /convert/[pair] SEO landing pages
@@ -169,35 +172,47 @@ export default function HomePage() {
       }
     }
 
-    // 2. Auto-unlock & auto-download upon verified return from Polar.sh Hosted Checkout
+    // 2. Auto-unlock & auto-download ONLY upon strictly verified Polar.sh Hosted Checkout return
     const checkoutStatus = params.get('checkout');
     const returnedPlan = (params.get('plan') || 'single') as 'single' | 'pro' | 'team';
-    const checkoutId = params.get('checkout_id') || '';
+    const checkoutId = (params.get('checkout_id') || '').trim();
 
     if (checkoutStatus === 'success') {
       (async () => {
-        let isVerified = true;
+        let isVerified = false;
         let verifiedPlan: 'single' | 'pro' | 'team' | undefined;
         let verifiedAmountUsd: string | undefined;
-        if (checkoutId && checkoutId !== '{CHECKOUT_ID}') {
+
+        const hasValidCheckoutId =
+          checkoutId.length >= 12 &&
+          checkoutId !== '{CHECKOUT_ID}' &&
+          !checkoutId.startsWith('polar_direct_') &&
+          !checkoutId.startsWith('polar_err_');
+
+        if (hasValidCheckoutId) {
           try {
             const verifyRes = await fetch(
               `/api/payments/polar/verify?checkout_id=${encodeURIComponent(checkoutId)}`
             );
             if (verifyRes.ok) {
               const verifyJson = await verifyRes.json();
-              isVerified = Boolean(verifyJson.verified);
+              isVerified = verifyJson.verified === true;
               if (verifyJson.plan) verifiedPlan = verifyJson.plan;
               if (typeof verifyJson.amountUsd === 'number') {
                 verifiedAmountUsd = verifyJson.amountUsd.toFixed(2);
               }
             }
           } catch {
-            isVerified = true;
+            // Fail CLOSED on verification error
+            isVerified = false;
           }
         }
 
-        if (!isVerified) return;
+        if (!isVerified) {
+          // Clean unverified query params without unlocking paid features
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
 
         // Restore staged custom repository from sessionStorage if available
         let restoredProject: CanonicalProject = DEMO_PRESETS[0].project;
@@ -313,6 +328,10 @@ export default function HomePage() {
         window.history.replaceState({}, '', window.location.pathname);
       })();
     }
+
+    return () => {
+      window.removeEventListener('promptshift_currency_changed', handleCurrencyChanged);
+    };
   }, []);
 
   // Compute transpilation & both Free Starter (single target) and 4-in-1 Universal Suite ZIPs in RAM
@@ -410,10 +429,14 @@ export default function HomePage() {
     project: CanonicalProject,
     targetPlatform: 'claude' | 'openai' | 'cursor' | 'gemini',
     sliced: boolean = false,
-    totalFiles: number = 1
+    totalFiles: number = 1,
+    fullProject?: CanonicalProject
   ) => {
     setCustomProject(project);
-    if (!sliced) {
+    if (sliced && fullProject) {
+      // Preserve full repository in RAM so unlocking later delivers 100% of files
+      setFullLockedProject(fullProject);
+    } else if (!sliced) {
       setFullLockedProject(null);
     }
     setActiveTarget(targetPlatform);
@@ -469,6 +492,18 @@ export default function HomePage() {
     (fullLockedProject && isSlicedStarter ? fullLockedProject.metadata.title : null) ||
     (isCustomMode && customProject ? customProject.metadata.title : activePreset.project.metadata.title);
 
+  const freePriceFormatted = CurrencyManager.formatZero(currency);
+  const singlePriceFormatted = CurrencyManager.getTierPrice('single', currency).formatted;
+  const proPriceFormatted = CurrencyManager.getTierPrice('pro', currency).formatted;
+  const teamPriceFormatted = CurrencyManager.getTierPrice('team', currency).formatted;
+  const bonusValueFormatted = CurrencyManager.getBonusValueFormatted(currency);
+  const effectiveSourceChannel =
+    typeof window !== 'undefined'
+      ? AnalyticsTracker.resolveEffectiveChannel(activePairSlug)
+      : activePairSlug
+      ? 'pseo'
+      : 'web';
+
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-100 selection:bg-cyan-500/30 font-sans">
       {/* 1. HERO SECTION — THE 5-SECOND TEST */}
@@ -508,7 +543,7 @@ export default function HomePage() {
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-100 font-bold text-base border border-slate-700 hover:border-cyan-500/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Coffee className="w-5 h-5 text-amber-400" />
-              <span>Universal 4-in-1 Suite: $1.99</span>
+              <span>Universal 4-in-1 Suite: {singlePriceFormatted}</span>
             </button>
           </div>
 
@@ -523,7 +558,7 @@ export default function HomePage() {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Coffee className="w-4 h-4 text-amber-400" />
-              <span>$1.99 One-Time Pass (Apple Pay &amp; Google Pay)</span>
+              <span>{singlePriceFormatted} One-Time Pass + Free 50+ Rules Vault</span>
             </span>
           </div>
         </div>
@@ -629,7 +664,7 @@ export default function HomePage() {
                 onClick={() => handleOpenCheckout('single')}
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-emerald-400 text-slate-950 font-black text-xs cursor-pointer whitespace-nowrap shadow-md"
               >
-                Unlock All {originalFileCount} Files ($1.99) →
+                Unlock All {originalFileCount} Files ({singlePriceFormatted}) →
               </button>
             </div>
           )}
@@ -694,7 +729,7 @@ export default function HomePage() {
                 <p className="text-slate-400">
                   {hasPaidLicense
                     ? 'Includes root configs + /universal-4-in-1-suite/ for Cursor, Claude Code, OpenAI & Gemini.'
-                    : 'Free Starter exports up to 2 files for 1 target ($0.00). Single Pass ($1.99) unlocks unlimited files + all 4 AI IDEs.'}
+                    : `Free Starter exports up to 2 files for 1 target (${freePriceFormatted}). Single Pass (${singlePriceFormatted}) unlocks unlimited files + all 4 AI IDEs + Free 50+ Rules Vault.`}
                 </p>
               </div>
 
@@ -706,7 +741,7 @@ export default function HomePage() {
                   >
                     <Download className="w-3.5 h-3.5 text-emerald-400" />
                     <span>
-                      Free {activeTarget.toUpperCase()} Starter (≤2 files • $0)
+                      Free {activeTarget.toUpperCase()} Starter (≤2 files • {freePriceFormatted})
                     </span>
                   </button>
                 )}
@@ -725,7 +760,7 @@ export default function HomePage() {
                     className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-black text-sm shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                   >
                     <Zap className="w-4 h-4 fill-current" />
-                    <span>Unlock 4-in-1 Suite ($1.99)</span>
+                    <span>Unlock 4-in-1 Suite ({singlePriceFormatted})</span>
                   </button>
                 )}
               </div>
@@ -770,7 +805,7 @@ export default function HomePage() {
             </div>
             <h3 className="text-xl font-bold mb-2">Export &amp; Ship</h3>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Download up to 2 files free or unlock the Universal 4-in-1 Suite ($1.99) via 1-click Apple Pay / Google Pay.
+              Download up to 2 files free or unlock the Universal 4-in-1 Suite ({singlePriceFormatted}) + Free 50+ Rules Vault via 1-click Apple Pay / Google Pay.
             </p>
           </div>
         </div>
@@ -829,7 +864,7 @@ export default function HomePage() {
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Universal 4-in-1 pack generated</strong>: Cursor, Claude, Windsurf &amp; OpenAI aligned for $1.99.</span>
+                <span><strong>Universal 4-in-1 pack generated</strong>: Cursor, Claude, Windsurf &amp; OpenAI aligned for {singlePriceFormatted}.</span>
               </li>
             </ul>
           </div>
@@ -878,9 +913,9 @@ export default function HomePage() {
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-5">
               <Coffee className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold mb-2">4. Transparent Micro-Pricing ($1.99 Single Pass)</h3>
+            <h3 className="text-xl font-bold mb-2">4. Transparent Micro-Pricing ({singlePriceFormatted} Single Pass)</h3>
             <p className="text-slate-400 text-sm leading-relaxed">
-              No sneaky $39/mo subscriptions. Buy an impulsive $1.99 Single Pass strictly when you need to export a multi-rule repository.
+              No sneaky $39/mo subscriptions. Buy a one-time {singlePriceFormatted} Single Pass strictly when you need to export a multi-rule repository — includes the 50+ Master Rules Vault ({bonusValueFormatted} value) free.
             </p>
           </div>
         </div>
@@ -890,9 +925,9 @@ export default function HomePage() {
       <section id="pricing" className="py-16 md:py-24 max-w-6xl mx-auto px-6 border-b border-slate-800/80">
         <div className="text-center mb-14">
           <h2 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2">Honest Pricing</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Simple, predictable USD rates</p>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Simple, transparent {currency} rates</p>
           <p className="text-slate-400 text-sm max-w-xl mx-auto">
-            Test freely with zero account creation. Upgrade via Polar.sh (Apple Pay / Google Pay) only when exporting multi-file suites or CI/CD pipelines.
+            Test freely with zero account creation. Upgrade via Polar.sh (Apple Pay / Google Pay, Merchant of Record with automated VAT receipts) only when exporting multi-file suites or CI/CD pipelines.
           </p>
         </div>
 
@@ -902,7 +937,7 @@ export default function HomePage() {
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Discovery</span>
               <h3 className="text-xl font-bold mt-1 mb-2">Free Starter</h3>
-              <div className="text-3xl font-black mb-4">$0.00</div>
+              <div className="text-3xl font-black mb-4">{freePriceFormatted}</div>
               <p className="text-slate-400 text-xs mb-6">Verify semantic parity and convert up to 2 rule files instantly.</p>
               <ul className="space-y-2.5 text-xs text-slate-300">
                 <li className="flex items-center gap-2">
@@ -930,13 +965,13 @@ export default function HomePage() {
           {/* Single Pass ($1.99) */}
           <div className="p-7 rounded-3xl bg-gradient-to-b from-cyan-950/40 via-slate-900 to-slate-900 border-2 border-cyan-500/60 relative flex flex-col justify-between shadow-2xl shadow-cyan-500/10 md:scale-[1.03]">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-black text-[10px] uppercase tracking-wider whitespace-nowrap">
-              Most Popular
+              Most Popular • Best Value
             </div>
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Single Pass</span>
               <h3 className="text-xl font-bold mt-1 mb-2">4-in-1 Suite</h3>
-              <div className="text-4xl font-black mb-1 text-white">$1.99</div>
-              <span className="text-[11px] text-slate-400 block mb-4">One-time, no subscription</span>
+              <div className="text-4xl font-black mb-1 text-white">{singlePriceFormatted}</div>
+              <span className="text-[11px] text-slate-400 block mb-4">One-time, no subscription • VAT handled by Polar</span>
               <p className="text-slate-300 text-xs mb-6">Export your complete repository for all 4 major AI ecosystems in 1 click.</p>
               <ul className="space-y-2.5 text-xs text-slate-200">
                 <li className="flex items-center gap-2">
@@ -944,16 +979,16 @@ export default function HomePage() {
                   <span><strong>4-in-1 bundle</strong> (Cursor, Claude, OpenAI, Gemini)</span>
                 </li>
                 <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong className="text-amber-300">FREE BONUS: 50+ Master Rules Vault</strong> ({bonusValueFormatted} value)</span>
+                </li>
+                <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span>Unlimited files for this repo</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>In-RAM secret redaction</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>Auto-ZIP + PDF VAT receipt</span>
+                  <span>In-RAM secret redaction + PDF VAT receipt</span>
                 </li>
               </ul>
             </div>
@@ -961,7 +996,7 @@ export default function HomePage() {
               onClick={() => handleOpenCheckout('single')}
               className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black text-xs text-center block transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
             >
-              Unlock 4-in-1 Pass ($1.99)
+              Unlock 4-in-1 Pass ({singlePriceFormatted})
             </button>
           </div>
 
@@ -970,7 +1005,7 @@ export default function HomePage() {
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Developer</span>
               <h3 className="text-xl font-bold mt-1 mb-2">Pro Unlimited</h3>
-              <div className="text-3xl font-black mb-1">$5.99</div>
+              <div className="text-3xl font-black mb-1">{proPriceFormatted}</div>
               <span className="text-[11px] text-slate-400 block mb-4">per month, cancel anytime</span>
               <p className="text-slate-400 text-xs mb-6">For developers syncing rules across CLI, MCP, and repos weekly.</p>
               <ul className="space-y-2.5 text-xs text-slate-300">
@@ -984,7 +1019,7 @@ export default function HomePage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>Priority developer support</span>
+                  <span>50+ Master Rules Vault included free</span>
                 </li>
               </ul>
             </div>
@@ -992,7 +1027,7 @@ export default function HomePage() {
               onClick={() => handleOpenCheckout('pro')}
               className="mt-8 w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs text-center block transition-colors cursor-pointer"
             >
-              Get Pro Pass ($5.99/mo)
+              Get Pro Pass ({proPriceFormatted}/mo)
             </button>
           </div>
 
@@ -1001,7 +1036,7 @@ export default function HomePage() {
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Enterprise CI/CD</span>
               <h3 className="text-xl font-bold mt-1 mb-2">Team &amp; Agency</h3>
-              <div className="text-3xl font-black mb-1">$19.99</div>
+              <div className="text-3xl font-black mb-1">{teamPriceFormatted}</div>
               <span className="text-[11px] text-slate-400 block mb-4">per month • 5 seats included</span>
               <p className="text-slate-400 text-xs mb-6">Continuous multi-IDE parity guard in GitHub &amp; GitLab Actions.</p>
               <ul className="space-y-2.5 text-xs text-slate-300">
@@ -1023,7 +1058,7 @@ export default function HomePage() {
               onClick={() => handleOpenCheckout('team')}
               className="mt-8 w-full py-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-200 font-bold text-xs text-center block transition-colors cursor-pointer"
             >
-              Get Team Pass ($19.99/mo)
+              Get Team Pass ({teamPriceFormatted}/mo)
             </button>
           </div>
         </div>
@@ -1112,7 +1147,7 @@ export default function HomePage() {
               onClick={() => handleOpenCheckout('single')}
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:opacity-95 text-slate-950 font-black text-base shadow-xl shadow-cyan-500/20 transition-all cursor-pointer"
             >
-              Unlock Universal 4-in-1 Suite ($1.99)
+              Unlock Universal 4-in-1 Suite ({singlePriceFormatted})
             </button>
             <a
               href="#dropzone"
@@ -1188,7 +1223,7 @@ export default function HomePage() {
         zipBase64={zipBase64}
         initialPlan={paymentPlan}
         initialIsPaid={isModalPaidCelebration}
-        sourceChannel={activePairSlug ? 'pseo' : 'web'}
+        sourceChannel={effectiveSourceChannel}
         conversionPair={activePairSlug}
         onBeforeExternalRedirect={persistPendingStateForPolar}
       />

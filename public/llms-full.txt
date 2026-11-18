@@ -111,7 +111,7 @@ PromptShift supports bi-directional, AST-accurate transpilation across all major
 - Source: `.cursorrules`, `.cursor/rules/*.mdc`
 - Target: `GEMINI.md`, `AGENTS.md`
 
-### 3.13 Pair 13: Claude Code to Google Gemini (`claude-to-gemini`)
+### 3.13 Pair 13: Claude Code to Google Antigravity (`claude-to-antigravity`)
 - Source: `CLAUDE.md`
 - Target: `GEMINI.md`, `AGENTS.md`
 
@@ -119,13 +119,13 @@ PromptShift supports bi-directional, AST-accurate transpilation across all major
 - Source: `GEMINI.md`, `AGENTS.md`
 - Target: `CLAUDE.md`
 
-### 3.15 Pair 15: GitHub Copilot to Windsurf (`copilot-to-windsurf`)
-- Source: `.github/copilot-instructions.md`
-- Target: `.windsurfrules`
+### 3.15 Pair 15: Google Antigravity to Claude Code (`antigravity-to-claude`)
+- Source: `AGENTS.md`, `GEMINI.md`, `.agents/rules/*.md`
+- Target: `CLAUDE.md`, `.claude/mcp.json`
 
-### 3.16 Pair 16: Windsurf to GitHub Copilot (`windsurf-to-copilot`)
-- Source: `.windsurfrules`
-- Target: `.github/copilot-instructions.md`
+### 3.16 Pair 16: Google Antigravity to Cursor (`antigravity-to-cursor`)
+- Source: `AGENTS.md`, `.agents/rules/*.md`
+- Target: `.cursorrules`, `.cursor/rules/*.mdc`
 
 ### 3.17 Pair 17: OpenAI Custom GPTs to Cursor (`openai-to-cursor`)
 - Source: `OPENAI_SYSTEM_PROMPT.md`, Assistant instructions
@@ -139,12 +139,16 @@ PromptShift supports bi-directional, AST-accurate transpilation across all major
 - Source: `CLAUDE.md`
 - Target: `OPENAI_SYSTEM_PROMPT.md`
 
-### 3.20 Pair 20: Universal 4-in-1 Suite Export
+### 3.20 Pair 20: OpenAI Custom GPTs to Claude Code (`openai-to-claude`)
+- Source: `OPENAI_SYSTEM_PROMPT.md`, `openai_assistant_v2.json`
+- Target: `CLAUDE.md`, `claude_project_instructions.xml`
+
+### 3.21 Universal 4-in-1 Suite Export
 - Generates all 4 primary target structures simultaneously in a unified ZIP archive:
   - `cursor/`: Complete `.cursorrules` + `.cursor/rules/*.mdc`
   - `claude/`: Complete `CLAUDE.md` + `.claude/rules/*.md` + `.claude/mcp.json`
-  - `copilot/`: Complete `.github/copilot-instructions.md`
-  - `windsurf/`: Complete `.windsurfrules`
+  - `openai/`: Complete `OPENAI_SYSTEM_PROMPT.md` + `openai_assistant_v2.json`
+  - `gemini/`: Complete `GEMINI.md` + `AGENTS.md`
 
 ---
 
@@ -168,16 +172,17 @@ PromptShift provides an open-source, zero-dependency CLI executable via `npx`:
 
 ```bash
 # 1. Immediate one-off conversion of current directory
-npx promptshift --source cursor --target claude
+npx promptshift --to=claude
 
-# 2. Universal 4-in-1 export for all major AI editors
-npx promptshift --universal
+# 2. Dry-run preview with AST parity & secret sanitization report
+npx promptshift --dry-run --to=cursor
 
-# 3. Real-time background sync-on-save watcher
-npx promptshift --watch
+# 3. Real-time background sync-on-save watcher (requires Pro/Team key for >2 files)
+npx promptshift --watch --key=<YOUR_POLAR_ORDER_ID>
 
-# 4. Clean up stale or conflicting rule files
-npx promptshift --clean
+# 4. CI/CD parity drift check or GitHub Actions workflow scaffolding
+npx promptshift --check --json
+npx promptshift --init-ci
 
 # 5. Launch STDIO Model Context Protocol Server
 npx promptshift --mcp
@@ -196,9 +201,9 @@ PromptShift implements the official Model Context Protocol (JSON-RPC 2.0). Devel
 }
 ```
 Available MCP Tools:
-- `convert_rules`: Transpiles rule content between specified formats in-memory.
-- `detect_rules`: Scans workspace and identifies present rule formats and syntax versions.
-- `sync_workspace`: Synchronizes rules across all detected AI editors in the project.
+- `promptshift_transpile`: Deterministically transpiles rule files between Cursor, Claude Code, Copilot, Windsurf, OpenAI, and Gemini in-memory.
+- `promptshift_sanitize_secrets`: Scans prompt text in volatile RAM and redacts 15+ credential formats (OpenAI, Anthropic, AWS, GitHub, Stripe).
+- `promptshift_validate_ast`: Audits rule syntax (quoted YAML globs, negative constraint preservation) and computes certified AST parity score.
 
 ---
 
@@ -212,12 +217,13 @@ PromptShift operates on a transparent, developer-first pricing model managed by 
 
 2. **Single Pass ($1.99 one-time)**:
    - Instant 1-click single repository unlock.
-   - Generates the Universal 4-in-1 multi-ecosystem bundle (Cursor + Claude + Copilot + Windsurf).
+   - Generates the Universal 4-in-1 multi-ecosystem bundle (Cursor + Claude + OpenAI + Gemini).
+   - Includes the **50+ Master Rules & Prompts Vault ($4.99 value) FREE at $0.00 extra**.
    - [Direct Polar Checkout: Single Pass ($1.99)](https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E)
 
-3. **Order Bump Add-on: Master Rules Vault (+$4.99 one-time)**:
+3. **Included Bonus: 50+ Master Rules & Prompts Vault (FREE — $4.99 Value)**:
    - Curated vault of 50+ battle-tested production rules for Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker, and Security Guardrails.
-   - Available as a 1-click add-on during checkout.
+   - Included automatically at $0.00 extra with every Single Pass, Pro Developer, or Team license.
 
 4. **Pro Developer ($5.99 / month)**:
    - Unlimited project conversions.
@@ -298,7 +304,7 @@ PromptShift preserves these constraints verbatim, wrapping them in elevated prio
 
 ### 9.3 In-RAM Credential Redaction Regular Expressions
 The ephemeral credential scrubber uses the following zero-retention regular expressions:
-- OpenAI Keys: `/sk-[a-zA-Z0-9]{20,T3BlbkFJ[a-zA-Z0-9]{20,}/g`
+- OpenAI Keys: `/sk-[a-zA-Z0-9]{20,}T3BlbkFJ[a-zA-Z0-9]{20,}/g`
 - OpenAI Project Keys: `/sk-proj-[a-zA-Z0-9_-]{48,}/g`
 - Anthropic Keys: `/sk-ant-api03-[a-zA-Z0-9_-]{80,}/g`
 - AWS Access Keys: `/AKIA[0-9A-Z]{16}/g`

@@ -303,13 +303,15 @@ export default function RootLayout({
               <span className="text-emerald-400 font-mono">Zero Server Storage (In-RAM Only)</span>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-xs">
-              <Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms & EULA</Link>
+              <Link href="/discover" className="hover:text-cyan-400 font-semibold transition-colors">Guides</Link>
               <span>•</span>
-              <Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy</Link>
+              <Link href="/cli" className="hover:text-cyan-400 font-semibold transition-colors">CLI</Link>
               <span>•</span>
               <Link href="/security" className="hover:text-emerald-400 transition-colors">Security & DPA</Link>
               <span>•</span>
-              <Link href="/cli" className="hover:text-cyan-400 font-semibold transition-colors">CLI</Link>
+              <Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms & EULA</Link>
+              <span>•</span>
+              <Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy</Link>
               <span>•</span>
               <a href="mailto:contact@promptshift.dev" className="hover:text-cyan-400 transition-colors">Support</a>
             </div>

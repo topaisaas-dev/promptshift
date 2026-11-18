@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { GoogleSearchConsoleService } from '@/lib/seo/googleSearchConsole';
 import { GscParserService } from '@/lib/seo/gscParser';
+import { isAdminAuthorized } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const credentials = GoogleSearchConsoleService.getCredentials();
@@ -45,6 +46,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isAdminAuthorized(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { action, url, files } = body;
 

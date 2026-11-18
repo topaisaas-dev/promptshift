@@ -7,6 +7,24 @@ export const metadata: Metadata = {
   title: 'Terms of Service & EULA | PromptShift.dev',
   description:
     'Terms of Service, License Grants, and Merchant of Record specifications for PromptShift.dev universal AI coding assistant transpiler.',
+  alternates: {
+    canonical: 'https://promptshift.dev/terms',
+  },
+  openGraph: {
+    title: 'Terms of Service & EULA | PromptShift.dev',
+    description:
+      'Commercial license grants, Merchant of Record (Polar.sh), and usage terms for PromptShift.dev.',
+    url: 'https://promptshift.dev/terms',
+    siteName: 'PromptShift',
+    type: 'website',
+    images: [{ url: '/assets/official_logo.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Terms of Service & EULA | PromptShift.dev',
+    description: 'Terms of Service, license grants, and Polar.sh Merchant of Record terms.',
+    images: ['/assets/official_logo.jpg'],
+  },
 };
 
 export default function TermsPage() {

@@ -147,8 +147,9 @@ export class EmailDispatcher {
       }
     }
 
-    // Provider 3: Simulated mode (zero retention / local development)
-    console.info(`[EmailDispatcher:Simulated] Email prepared for <${email}>: "${emailData.subject}"`);
+    // Provider 3: Simulated mode (zero retention / local development — no plaintext PII in logs)
+    const maskedDomain = email.includes('@') ? email.split('@')[1] : 'redacted';
+    console.info(`[EmailDispatcher:Simulated] Prepared ${action} email for domain <***@${maskedDomain}>`);
     return {
       success: true,
       delivered: false,

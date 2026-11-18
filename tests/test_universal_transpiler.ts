@@ -478,10 +478,12 @@ async function runAllTests() {
     assert.strictEqual(summaryToday.targetPlatformShare.cursor, 1);
     assert.strictEqual(summaryToday.targetPlatformShare.openai, 1);
 
-    // Verify Agile Arbitrage Matrix & Edge Telemetry
+    // Verify Agile Arbitrage Matrix & Honest Edge Telemetry (zero fabricated constants)
     assert.strictEqual(summaryToday.arbitrageMatrix.length, 5, 'Must generate exactly 5 strategic arbitrage items');
-    assert(summaryToday.edgeStats.cloudflareCacheHitRatio >= 90, 'Must report Cloudflare edge cache metrics');
-    assert(summaryToday.edgeStats.coreWebVitalsLcpSec > 0, 'Must report Core Web Vitals');
+    assert.strictEqual(summaryToday.edgeStats.cloudflareCacheHitRatio, null, 'External Cloudflare cache hit must not be fabricated');
+    assert.strictEqual(summaryToday.edgeStats.coreWebVitalsLcpSec, null, 'External Core Web Vitals must not be fabricated');
+    assert.strictEqual(summaryToday.edgeStats.wafThreatsBlocked, 0, 'WAF threats must not count regular visitors');
+    assert.ok(summaryToday.edgeStats.vercelServerlessInvocations >= 3, 'Must report observed serverless invocations');
 
     // Verify multi-criteria telemetry filtering
     const cursorFilter = AnalyticsAggregator.filterEvents(mockEvents, {

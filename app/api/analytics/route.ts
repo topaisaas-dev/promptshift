@@ -3,6 +3,18 @@ import { AnalyticsEvent, AnalyticsPeriod } from '@/lib/analytics/analyticsTypes'
 import { AnalyticsAggregator } from '@/lib/analytics/analyticsAggregator';
 import { ServerTelemetryStore } from '@/lib/analytics/serverTelemetryStore';
 import { PolarService } from '@/lib/payments/polarService';
+import { isAdminAuthorized } from '@/lib/auth/adminAuth';
+
+function sanitizeReferrerUrl(raw?: string | null): string | undefined {
+  if (!raw || !raw.trim()) return undefined;
+  try {
+    const parsed = new URL(raw);
+    // Strip query string and hash to prevent capturing tokens or email params in referrers
+    return `${parsed.origin}${parsed.pathname}`.slice(0, 200);
+  } catch {
+    return raw.split('?')[0].split('#')[0].slice(0, 200) || undefined;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +34,7 @@ export async function POST(req: NextRequest) {
       else if (userAgent.includes('bingbot')) botName = 'Bingbot';
     }
 
-    const rawReferrer = body.referrer || req.headers.get('referer') || undefined;
+    const rawReferrer = sanitizeReferrerUrl(body.referrer || req.headers.get('referer'));
     let referrerDomain = body.referrerDomain;
     if (!referrerDomain && rawReferrer) {
       const lower = rawReferrer.toLowerCase();
@@ -73,7 +85,15 @@ export async function POST(req: NextRequest) {
       else if (ref.includes('pinterest.com') || ref.includes('pin.it') || utm === 'pinterest') socialNetwork = 'pinterest';
     }
 
-    const campaignOrPost = body.campaignOrPost || (body.utmCampaign ? (body.utmTerm ? `${body.utmCampaign} (${body.utmTerm})` : body.utmCampaign) : (socialNetwork ? 'Lien direct bio/post' : undefined));
+    const campaignOrPost =
+      body.campaignOrPost ||
+      (body.utmCampaign
+        ? body.utmContent || body.utmTerm
+          ? `${body.utmCampaign} (${body.utmContent || body.utmTerm})`
+          : body.utmCampaign
+        : socialNetwork
+        ? 'Direct Bio / Post Link'
+        : undefined);
 
     const enriched = ServerTelemetryStore.record({
       ...body,
@@ -83,7 +103,13 @@ export async function POST(req: NextRequest) {
       deviceType,
       socialNetwork,
       campaignOrPost,
-      actionStage: body.actionStage || (body.type === 'page_view' ? 'Page Visit' : body.type === 'conversion_completed' ? 'Conversion Completed' : body.type),
+      actionStage:
+        body.actionStage ||
+        (body.type === 'page_view'
+          ? 'Page Visit'
+          : body.type === 'conversion_completed'
+          ? 'Conversion Completed'
+          : body.type),
       country:
         req.headers.get('x-vercel-ip-country') ||
         req.headers.get('cf-ipcountry') ||
@@ -104,35 +130,45 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    if (!isAdminAuthorized(req)) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Valid admin session or x-admin-key header required.' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const period = (searchParams.get('period') as AnalyticsPeriod) || '7d';
-    const providedKey = req.headers.get('x-admin-key') || searchParams.get('key');
-
-    const expectedKey = process.env.PROMPTSHIFT_ADMIN_KEY || 'promptshift-admin-2026';
-
-    if (providedKey !== expectedKey && providedKey !== 'promptshift-admin-2026') {
-      return NextResponse.json({ error: 'Unauthorized. Admin key required.' }, { status: 401 });
-    }
 
     const allEvents = ServerTelemetryStore.getAll();
     const summary = AnalyticsAggregator.aggregate(allEvents, period);
     const tips = AnalyticsAggregator.generateOptimizationTips(summary);
     const polarCommercialMetrics = await PolarService.getLiveCommercialMetrics().catch(() => null);
 
-    return NextResponse.json({
-      summary,
-      tips,
-      serverEventsCount: allEvents.length,
-      events: allEvents,
-      polarCommercialMetrics,
-    });
+    return NextResponse.json(
+      {
+        summary,
+        tips,
+        serverEventsCount: allEvents.length,
+        events: allEvents,
+        polarCommercialMetrics,
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
+    if (!isAdminAuthorized(req)) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Valid admin session or x-admin-key header required.' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
+
     ServerTelemetryStore.clear();
     return NextResponse.json({ ok: true, message: 'Server analytics buffer cleared', count: 0 });
   } catch (err: any) {

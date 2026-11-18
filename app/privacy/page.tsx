@@ -7,6 +7,24 @@ export const metadata: Metadata = {
   title: 'Privacy Policy & Zero Retention Guarantee | PromptShift.dev',
   description:
     'Sovereign privacy policy detailing PromptShift.dev zero-server-storage guarantee, GDPR Article 28 compliance, and local vault security.',
+  alternates: {
+    canonical: 'https://promptshift.dev/privacy',
+  },
+  openGraph: {
+    title: 'Privacy Policy & Zero Retention Guarantee | PromptShift.dev',
+    description:
+      'PromptShift zero-server-storage guarantee, GDPR Article 28 compliance, and sovereign browser-local vault architecture.',
+    url: 'https://promptshift.dev/privacy',
+    siteName: 'PromptShift',
+    type: 'website',
+    images: [{ url: '/assets/official_logo.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Privacy Policy & Zero Retention Guarantee | PromptShift.dev',
+    description: '100% In-RAM zero-retention architecture and GDPR Article 28 compliance.',
+    images: ['/assets/official_logo.jpg'],
+  },
 };
 
 export default function PrivacyPage() {

@@ -1,11 +1,11 @@
 /**
  * PromptShift — Polar.sh Merchant of Record (MoR) Integration
  * Handles:
- * 1. Checkout session creation via Polar API v1 (with attribution metadata)
+ * 1. Checkout session creation via Polar API v1 (with full UTM & channel attribution metadata)
  * 2. Product ID & Permanent Checkout Link resolution (Single Pass, Pro Developer, Team & Agency)
- * 3. License key format & checkout session verification
+ * 3. License key format & strict fail-closed checkout session verification
  * 4. Live Ground-Truth Commercial Telemetry from Polar MoR (Zero-PII aggregate counters)
- * 5. Webhook signature verification (Standard Webhooks / Svix format)
+ * 5. Constant-time Webhook signature verification (Standard Webhooks / Svix format)
  */
 
 import crypto from 'node:crypto';
@@ -19,6 +19,10 @@ export interface PolarCheckoutRequest {
   sourceChannel?: string;
   conversionPair?: string;
   includeOrderBump?: boolean;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
 }
 
 export interface PolarCheckoutResponse {
@@ -58,9 +62,15 @@ const EUR_TO_USD_RATE = 1.08;
 
 let cachedSnapshot: { data: PolarLiveCommercialSnapshot; expiresAt: number } | null = null;
 
+function sanitizeMetaValue(val?: string | null, maxLen = 60): string | undefined {
+  if (!val) return undefined;
+  const cleaned = String(val).trim().slice(0, maxLen);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 export class PolarService {
   private static getAccessToken(): string {
-    return process.env.POLAR_ACCESS_TOKEN || 'polar_oat_bCrvRXLieKhThTzt1Q2TkRaviLKjSVEPPJtDu0wgOm3';
+    return (process.env.POLAR_ACCESS_TOKEN || '').trim();
   }
 
   public static getProductId(plan: 'single' | 'pro' | 'team'): string {
@@ -114,12 +124,42 @@ export class PolarService {
 
   public static async createCheckout(req: PolarCheckoutRequest): Promise<PolarCheckoutResponse> {
     const token = this.getAccessToken();
+    if (!token) {
+      console.warn('[PolarService] POLAR_ACCESS_TOKEN not configured; falling back to permanent Polar link.');
+      return {
+        checkoutUrl: this.getPermanentCheckoutLink(req.plan),
+        checkoutId: `polar_direct_${Date.now()}`,
+      };
+    }
+
     const productId = this.getProductId(req.plan);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://promptshift.dev';
 
     const successUrl =
       req.successUrl || `${appUrl}/?checkout=success&plan=${req.plan}&checkout_id={CHECKOUT_ID}`;
     const returnUrl = req.returnUrl || `${appUrl}/#sandbox`;
+
+    const metadata: Record<string, string> = {
+      app: 'promptshift',
+      plan: req.plan,
+      project_name: (req.projectName || 'custom_workspace').slice(0, 60),
+      channel: sanitizeMetaValue(req.sourceChannel, 40) || 'web_studio',
+      pair: sanitizeMetaValue(req.conversionPair, 50) || 'direct',
+      order_bump: req.includeOrderBump ? 'true' : 'false',
+      order_bump_item: req.includeOrderBump ? 'rules_vault_50_included_free' : 'none',
+    };
+
+    const utmSource = sanitizeMetaValue(req.utmSource, 50);
+    const utmMedium = sanitizeMetaValue(req.utmMedium, 50);
+    const utmCampaign = sanitizeMetaValue(req.utmCampaign, 60);
+    const utmContent = sanitizeMetaValue(req.utmContent, 60);
+    if (utmSource) metadata.utm_source = utmSource;
+    if (utmMedium) metadata.utm_medium = utmMedium;
+    if (utmCampaign) metadata.utm_campaign = utmCampaign;
+    if (utmContent) metadata.utm_content = utmContent;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
 
     try {
       const response = await fetch('https://api.polar.sh/v1/checkouts/custom/', {
@@ -129,23 +169,18 @@ export class PolarService {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           product_id: productId,
           customer_email:
             req.customerEmail && req.customerEmail.includes('@') ? req.customerEmail.trim() : undefined,
           success_url: successUrl,
           return_url: returnUrl,
-          metadata: {
-            app: 'promptshift',
-            plan: req.plan,
-            project_name: (req.projectName || 'custom_workspace').slice(0, 60),
-            channel: req.sourceChannel || 'web_studio',
-            pair: req.conversionPair || 'direct',
-            order_bump: req.includeOrderBump ? 'true' : 'false',
-            order_bump_item: req.includeOrderBump ? 'rules_vault_50' : 'none',
-          },
+          metadata,
         }),
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -164,6 +199,7 @@ export class PolarService {
         checkoutId: data.id,
       };
     } catch (err) {
+      clearTimeout(timeout);
       console.error('Polar Checkout Exception:', err);
       return {
         checkoutUrl: this.getPermanentCheckoutLink(req.plan),
@@ -173,7 +209,8 @@ export class PolarService {
   }
 
   /**
-   * Verifies a Polar checkout session status upon return to /?checkout=success
+   * Strictly verifies a Polar checkout session status upon return to /?checkout=success.
+   * Fails CLOSED on missing, placeholder, synthetic, or unconfirmed checkout IDs.
    */
   public static async verifyCheckoutSession(checkoutId: string): Promise<{
     verified: boolean;
@@ -181,19 +218,36 @@ export class PolarService {
     plan?: 'single' | 'pro' | 'team';
     amountUsd?: number;
   }> {
-    if (!checkoutId || checkoutId === '{CHECKOUT_ID}' || checkoutId.startsWith('polar_direct_')) {
-      return { verified: true, status: 'hosted_link_return' };
+    const cleaned = (checkoutId || '').trim();
+    if (
+      !cleaned ||
+      cleaned === '{CHECKOUT_ID}' ||
+      cleaned.startsWith('polar_direct_') ||
+      cleaned.startsWith('polar_err_') ||
+      cleaned.length < 12
+    ) {
+      return { verified: false, status: 'invalid_checkout_id' };
     }
 
+    const token = this.getAccessToken();
+    if (!token) {
+      return { verified: false, status: 'polar_token_unconfigured' };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+
     try {
-      const token = this.getAccessToken();
-      const res = await fetch(`https://api.polar.sh/v1/checkouts/custom/${encodeURIComponent(checkoutId)}`, {
+      const res = await fetch(`https://api.polar.sh/v1/checkouts/custom/${encodeURIComponent(cleaned)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        signal: controller.signal,
         cache: 'no-store',
       });
+
+      clearTimeout(timeout);
 
       if (!res.ok) {
         return { verified: false, status: `http_${res.status}` };
@@ -220,6 +274,7 @@ export class PolarService {
         amountUsd,
       };
     } catch {
+      clearTimeout(timeout);
       return { verified: false, status: 'network_error' };
     }
   }
@@ -261,8 +316,12 @@ export class PolarService {
       byPairCheckouts: {},
     };
 
+    const token = this.getAccessToken();
+    if (!token) {
+      return snapshot;
+    }
+
     try {
-      const token = this.getAccessToken();
       const singleId = this.getProductId('single');
       const proId = this.getProductId('pro');
       const teamId = this.getProductId('team');
@@ -351,7 +410,9 @@ export class PolarService {
           if (st === 'expired') snapshot.byPlan[plan].checkoutsExpired += 1;
           if (st === 'open') snapshot.byPlan[plan].checkoutsOpen += 1;
 
-          const ch = String(chk.metadata?.channel || 'web_studio');
+          const metaCh = String(chk.metadata?.channel || '').trim();
+          const metaUtm = String(chk.metadata?.utm_source || '').trim();
+          const ch = metaCh || (metaUtm ? `utm_${metaUtm}` : 'web_studio');
           snapshot.byChannelCheckouts[ch] = (snapshot.byChannelCheckouts[ch] || 0) + 1;
 
           const pair = String(chk.metadata?.pair || '');
@@ -382,28 +443,28 @@ export class PolarService {
     payload: string,
     headers: { id?: string | null; timestamp?: string | null; signature?: string | null }
   ): boolean {
-    const secret =
-      process.env.POLAR_WEBHOOK_SECRET || 'whsec_7fmNASsusuiVMgPloGjwg3jptlgtPVno7abJKKp2VHg=';
+    const secret = (process.env.POLAR_WEBHOOK_SECRET || '').trim();
     if (!secret || !headers.id || !headers.timestamp || !headers.signature) {
       return false;
     }
 
     try {
-      let keyBuffer: Buffer;
-      if (secret.startsWith('whsec_')) {
-        keyBuffer = Buffer.from(secret.slice(6), 'base64');
-      } else {
-        keyBuffer = Buffer.from(secret, 'utf-8');
-      }
+      const keyBuffer = secret.startsWith('whsec_')
+        ? Buffer.from(secret.slice(6), 'base64')
+        : Buffer.from(secret, 'utf-8');
 
       const toSign = `${headers.id}.${headers.timestamp}.${payload}`;
       const hmac = crypto.createHmac('sha256', keyBuffer).update(toSign).digest('base64');
+      const expectedBuf = Buffer.from(hmac, 'utf-8');
 
       const sigParts = headers.signature.split(' ');
       for (const part of sigParts) {
         const [version, hash] = part.split(',');
-        if (version === 'v1' && hash === hmac) {
-          return true;
+        if (version === 'v1' && hash) {
+          const providedBuf = Buffer.from(hash, 'utf-8');
+          if (providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+            return true;
+          }
         }
       }
       return false;

@@ -45,13 +45,11 @@ jobs:
 
       - name: Run PromptShift Universal Transpiler
         env:
-          PROMPTSHIFT_TOKEN: \${{ secrets.PROMPTSHIFT_API_KEY }}
+          PROMPTSHIFT_LICENSE_KEY: \${{ secrets.PROMPTSHIFT_KEY }}
         run: |
-          npx --yes promptshift-cli sync \\
-            --source auto \\
-            --targets claude,cursor,gemini,openai \\
-            --redact-secrets true \\
-            --strict-parity 98.5
+          npx --yes promptshift --to=claude --key="\${PROMPTSHIFT_LICENSE_KEY}"
+          npx --yes promptshift --to=cursor --key="\${PROMPTSHIFT_LICENSE_KEY}"
+          npx --yes promptshift --check --json --key="\${PROMPTSHIFT_LICENSE_KEY}"
 
       - name: Commit Synchronized Multi-Agent Directives
         run: |

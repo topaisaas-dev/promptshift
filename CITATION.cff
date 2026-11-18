@@ -1,11 +1,8 @@
 cff-version: 1.2.0
 message: "If you use PromptShift in your research, developer workflow, or software project, please cite it as below."
 authors:
-  - family-names: "Garcin"
-    given-names: "Jean-Yves"
-    alias: "jyg3"
-  - name: "TopAI SaaS Engineering Team"
-    website: "https://topaisaas.com"
+  - name: "PromptShift Engineering Team"
+    website: "https://promptshift.dev"
 title: "PromptShift: Universal AST Transpiler & Synchronization Bridge for AI Coding Rules"
 version: 1.2.0
 date-released: 2026-10-31

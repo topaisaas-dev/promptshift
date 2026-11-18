@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CONVERSION_PAIRS } from '@/lib/seo/conversionPairs';
+import { ExpressCheckoutLink } from '@/components/ExpressCheckoutLink';
 
 export const metadata: Metadata = {
   title: 'AI Coding Rules Knowledge Base & Format Guide (2026) | PromptShift',
@@ -320,6 +321,62 @@ export default function DiscoverPage() {
                 </p>
               </details>
             ))}
+          </div>
+        </section>
+
+        {/* Direct Pricing & Commercial Unlock CTA */}
+        <section className="mb-16 p-8 rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/20 to-slate-900/60 text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Sync Every AI Editor Across Your Team in 2 Seconds
+          </h2>
+          <p className="text-sm text-slate-300 mb-6 max-w-2xl mx-auto">
+            Start free up to 2 files with zero signup, or unlock unlimited multi-file repositories + the{' '}
+            <strong className="text-amber-300">50+ Master Rules Vault ($4.99 value included free)</strong> via Polar.sh.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <Link
+              href="/#dropzone"
+              className="p-4 rounded-xl border border-slate-800 hover:border-emerald-500/50 bg-slate-950/70 transition-all block text-left"
+            >
+              <div className="text-[10px] font-mono text-slate-400 uppercase">Free Starter</div>
+              <div className="text-2xl font-black text-white my-1">$0.00</div>
+              <div className="text-xs text-slate-400">Up to 2 files • Zero signup →</div>
+            </Link>
+            <ExpressCheckoutLink
+              plan="single"
+              channel="pseo"
+              className="p-4 rounded-xl border border-cyan-500/60 hover:border-cyan-400 bg-cyan-950/40 relative transition-all block text-left shadow-lg shadow-cyan-500/10"
+            >
+              <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-cyan-400 text-[9px] font-black text-black uppercase">
+                + Free Vault
+              </span>
+              <div className="text-[10px] font-mono text-cyan-400 uppercase">4-in-1 Suite Pass</div>
+              <div className="text-2xl font-black text-white my-1">$1.99</div>
+              <div className="text-xs text-cyan-200">One-time + 50+ Rules Vault →</div>
+            </ExpressCheckoutLink>
+            <ExpressCheckoutLink
+              plan="pro"
+              channel="pseo"
+              className="p-4 rounded-xl border border-slate-800 hover:border-purple-500/50 bg-slate-950/70 transition-all block text-left"
+            >
+              <div className="text-[10px] font-mono text-purple-400 uppercase">Pro Unlimited</div>
+              <div className="text-2xl font-black text-white my-1">
+                $5.99<span className="text-xs font-normal text-slate-400">/mo</span>
+              </div>
+              <div className="text-xs text-slate-400">Unlimited + CLI &amp; MCP Key →</div>
+            </ExpressCheckoutLink>
+            <ExpressCheckoutLink
+              plan="team"
+              channel="pseo"
+              className="p-4 rounded-xl border border-purple-500/30 hover:border-purple-400 bg-slate-950/70 transition-all block text-left"
+            >
+              <div className="text-[10px] font-mono text-indigo-400 uppercase">Team &amp; Agency</div>
+              <div className="text-2xl font-black text-white my-1">
+                $19.99<span className="text-xs font-normal text-slate-400">/mo</span>
+              </div>
+              <div className="text-xs text-slate-400">5 seats + CI/CD + DPA →</div>
+            </ExpressCheckoutLink>
           </div>
         </section>
 

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 
 /**
  * PromptShift Edge Middleware — Agent Discovery Headers & Maintenance Shield
  * Injects standard RFC 8288 Link headers for AI crawlers & MCP registries
- * (GPTBot, ClaudeBot, PerplexityBot, Smithery, Glama, Cursor) on public routes.
+ * (GPTBot, ClaudeBot, PerplexityBot, Smithery, Glama, Cursor) on public HTML routes.
  */
 export const IS_MAINTENANCE_MODE = false;
 
@@ -15,7 +15,7 @@ const AGENT_DISCOVERY_LINKS = [
   '<https://promptshift.dev/api/openapi.json>; rel="service-desc"',
 ].join(', ');
 
-export function middleware(request: NextRequest) {
+export function middleware(request: NextRequest, event?: NextFetchEvent) {
   const pathname = request?.nextUrl?.pathname || '/';
   const _sessionCookie = request?.cookies?.get?.('promptshift_session');
 
@@ -35,11 +35,16 @@ export function middleware(request: NextRequest) {
 
   if (!IS_MAINTENANCE_MODE) {
     const response = NextResponse.next();
-    if (!pathname.startsWith('/bouboule') && !pathname.startsWith('/_next')) {
+    const isInternalOrApi =
+      pathname.startsWith('/bouboule') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/api');
+
+    if (!isInternalOrApi) {
       response.headers.set('Link', AGENT_DISCOVERY_LINKS);
     }
 
-    // AI Bot Crawler Detection & Inbound Telemetry
+    // AI Bot Crawler Detection & Inbound Telemetry (properly awaited via Edge waitUntil)
     const ua = (request?.headers?.get?.('user-agent') || '').toLowerCase();
     const isAiCrawler =
       ua.includes('gptbot') ||
@@ -48,20 +53,28 @@ export function middleware(request: NextRequest) {
       ua.includes('perplexitybot') ||
       ua.includes('claudebot') ||
       ua.includes('anthropic-ai') ||
-      ua.includes('google-extended') ||
-      ua.includes('bingbot');
+      ua.includes('google-extended');
 
-    if (isAiCrawler && !pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
+    if (
+      isAiCrawler &&
+      !isInternalOrApi &&
+      !pathname.startsWith('/assets') &&
+      typeof event?.waitUntil === 'function'
+    ) {
       const botName =
-        ua.includes('gptbot') || ua.includes('oai-searchbot') ? 'GPTBot' :
-        ua.includes('chatgpt-user') ? 'ChatGPT-User' :
-        ua.includes('perplexitybot') ? 'PerplexityBot' :
-        ua.includes('claudebot') || ua.includes('anthropic-ai') ? 'ClaudeBot' :
-        ua.includes('google-extended') ? 'Google-Extended' : 'Bingbot';
+        ua.includes('gptbot') || ua.includes('oai-searchbot')
+          ? 'GPTBot'
+          : ua.includes('chatgpt-user')
+          ? 'ChatGPT-User'
+          : ua.includes('perplexitybot')
+          ? 'PerplexityBot'
+          : ua.includes('claudebot') || ua.includes('anthropic-ai')
+          ? 'ClaudeBot'
+          : 'Google-Extended';
 
       try {
         const analyticsUrl = new URL('/api/analytics', request.url);
-        fetch(analyticsUrl.toString(), {
+        const beacon = fetch(analyticsUrl.toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -70,9 +83,13 @@ export function middleware(request: NextRequest) {
             path: pathname,
             botName,
             userAgentSnippet: (request?.headers?.get?.('user-agent') || '').slice(0, 60),
-            country: request?.headers?.get?.('x-vercel-ip-country') || request?.headers?.get?.('cf-ipcountry') || 'US',
+            country:
+              request?.headers?.get?.('x-vercel-ip-country') ||
+              request?.headers?.get?.('cf-ipcountry') ||
+              'US',
           }),
         }).catch(() => {});
+        event.waitUntil(beacon);
       } catch {
         // ignore
       }
@@ -92,7 +109,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Allow access to the secret admin route: /bouboule
+  // 2. Allow access to the admin route: /bouboule
   if (pathname.startsWith('/bouboule')) {
     return NextResponse.next();
   }
@@ -127,5 +144,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
 };

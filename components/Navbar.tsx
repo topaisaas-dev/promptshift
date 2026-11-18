@@ -13,6 +13,7 @@ import { VipPromoBanner } from '@/components/VipPromoBanner';
 import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManager';
 import { AuthManager } from '@/lib/auth/authManager';
 import { ClientVault, UserPlanTier } from '@/lib/storage/clientVault';
+import { AnalyticsTracker } from '@/lib/analytics/analyticsTracker';
 
 export const Navbar: React.FC = () => {
   const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
@@ -169,6 +170,13 @@ export const Navbar: React.FC = () => {
           </a>
 
           <Link
+            href="/discover"
+            className="hidden md:inline-block text-xs font-bold text-textMuted hover:text-cyan-300 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-all focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
+          >
+            Guides
+          </Link>
+
+          <Link
             href="/cli"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
           >
@@ -176,12 +184,12 @@ export const Navbar: React.FC = () => {
             <span>CLI</span>
           </Link>
 
-          <a
-            href="#pricing"
+          <Link
+            href="/#pricing"
             className="hidden sm:inline-block text-xs font-bold text-textMuted hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-all focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none"
           >
             Pricing
-          </a>
+          </Link>
 
           {/* Localized Currency Selector */}
           <CurrencySelector />
@@ -256,6 +264,7 @@ export const Navbar: React.FC = () => {
         onClose={() => setIsPaymentModalOpen(false)}
         projectName="PromptShift Universal Developer"
         initialPlan={paymentPlan}
+        sourceChannel={typeof window !== 'undefined' ? AnalyticsTracker.resolveEffectiveChannel() : 'web'}
         onOpenPortal={() => setIsPortalOpen(true)}
       />
 

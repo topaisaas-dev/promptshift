@@ -3,37 +3,37 @@
   <!-- Core Static Pages -->
   <url>
     <loc>https://promptshift.dev/</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/discover</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/cli</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/security</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/terms</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.50</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/privacy</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.50</priority>
   </url>
@@ -41,121 +41,121 @@
   <!-- 20 Conversion Pair Technical Migration Guides (AEO / GEO / Perplexity Optimized) -->
   <url>
     <loc>https://promptshift.dev/convert/cursor-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/claude-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/cursor-to-copilot</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/copilot-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/cursor-to-windsurf</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/windsurf-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/claude-to-copilot</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/copilot-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/claude-to-windsurf</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/windsurf-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/gemini-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/cursor-to-gemini</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/openai-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/cursor-to-openai</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/claude-to-openai</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/openai-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/antigravity-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/claude-to-antigravity</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/antigravity-to-cursor</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
     <loc>https://promptshift.dev/convert/gemini-to-claude</loc>
-    <lastmod>2026-11-07</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>

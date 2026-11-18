@@ -14,14 +14,12 @@ import {
   Mail,
   Share2,
   UploadCloud,
-  Tag,
 } from 'lucide-react';
 import { ClientVault, VaultInvoice } from '@/lib/storage/clientVault';
 import { InvoiceGenerator } from '@/lib/invoices/invoiceGenerator';
 import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManager';
 import { AnalyticsTracker } from '@/lib/analytics/analyticsTracker';
 import { MonetizationManager } from '@/lib/config/monetizationConfig';
-import { PromoManager } from '@/lib/promo/promoManager';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -61,8 +59,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [emailError, setEmailError] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [includeOrderBump, setIncludeOrderBump] = useState(true);
-  const [promoCodeInput, setPromoCodeInput] = useState('');
-  const [promoError, setPromoError] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -115,11 +111,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   if (!isOpen) return null;
 
   const tierPriceInfo = CurrencyManager.getTierPrice(selectedPlan, currency);
+  const singlePriceInfo = CurrencyManager.getTierPrice('single', currency);
   const hasProject = Boolean(zipBase64 && zipBase64.trim().length > 0);
   const trimmedEmail = customerEmail.trim();
   const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail);
   const displayPrice = isFreeBeta ? CurrencyManager.formatZero(currency) : tierPriceInfo.formattedTotal;
-  const bumpPriceFormatted = currency === 'EUR' ? '4.90 €' : '$4.99';
+  const bumpPriceFormatted = CurrencyManager.getBonusValueFormatted(currency);
 
   const handlePolarCheckout = async () => {
     // Email is OPTIONAL for 1-Click Express Polar Checkout (Apple Pay / Google Pay / Link).
@@ -146,6 +143,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const successUrl = `${appUrl}/?checkout=success&plan=${selectedPlan}&checkout_id={CHECKOUT_ID}`;
       const returnUrl = `${appUrl}/#sandbox`;
 
+      const attr = AnalyticsTracker.getAttribution();
+      const effectiveChannel =
+        attr?.channel && attr.channel !== 'web'
+          ? attr.channel
+          : sourceChannel || (conversionPair ? 'pseo' : 'web');
+
       const res = await fetch('/api/payments/polar/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,9 +156,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           plan: selectedPlan,
           customerEmail: isEmailValid ? trimmedEmail : undefined,
           projectName: projectName || 'Universal 4-in-1 Suite',
-          sourceChannel,
+          sourceChannel: effectiveChannel,
           conversionPair,
           includeOrderBump,
+          utmSource: attr?.utmSource,
+          utmMedium: attr?.utmMedium,
+          utmCampaign: attr?.utmCampaign,
+          utmContent: attr?.utmContent,
           successUrl,
           returnUrl,
         }),
@@ -171,35 +178,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       console.error('Polar checkout launch error:', err);
       setEmailError(err.message || 'Unable to open Polar secure checkout. Please try again.');
       setIsProcessing(false);
-    }
-  };
-
-  const handleApplyPromo = () => {
-    setPromoError('');
-    if (!promoCodeInput.trim()) {
-      setPromoError('Please enter a promo or admin code');
-      return;
-    }
-    const res = PromoManager.validate(promoCodeInput);
-    if (res.valid) {
-      PromoManager.activateVip(res.code);
-      ClientVault.setActivePlan('pro');
-      const cust = ClientVault.getCustomerInfo();
-      const invoice = ClientVault.saveInvoice({
-        orderId: `ADMIN-${res.code}-${Date.now().toString().slice(-6)}`,
-        planName: 'Pro Developer Subscription (Admin Smoketest Pass)',
-        amount: '0.00',
-        currency: 'USD',
-        paymentMethod: `Admin Code: ${res.code}`,
-        status: 'PAID',
-        customerName: cust.name || 'Admin Developer',
-        customerCompany: cust.company || 'Engineering Workspace',
-        customerEmail: isEmailValid ? trimmedEmail : cust.email || 'admin@promptshift.dev',
-      });
-      setLastInvoice(invoice);
-      setIsPaid(true);
-    } else {
-      setPromoError('Invalid promo code. For admin testing, use code: SMOKETEST');
     }
   };
 
@@ -250,7 +228,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               ? 'Unlock Team & Agency CI/CD Pass'
               : selectedPlan === 'pro'
               ? 'Unlock Pro Developer Unlimited Pass'
-              : 'Unlock Universal 4-in-1 Suite ($1.99)'}
+              : `Unlock Universal 4-in-1 Suite (${singlePriceInfo.formatted})`}
           </h2>
           <p className="text-xs text-textMuted max-w-sm text-center">
             {isPaid
@@ -374,13 +352,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  Included at $0.00 extra: instant direct download of the 50+ battle-tested gold-standard production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; Security Guardrails) ready-to-use for Cursor, Claude Code, Copilot &amp; Windsurf.
+                  Included at $0.00 extra: instant direct download of the 50+ battle-tested production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; Security Guardrails) ready-to-use for Cursor, Claude Code, Copilot &amp; Windsurf.
                 </p>
               </label>
             </div>
 
             {/* Primary 1-Click Express Checkout CTA */}
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2">
               <button
                 type="button"
                 onClick={handlePolarCheckout}
@@ -407,6 +385,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span>•</span>
                 <span>🔒 Merchant of Record: Polar.sh</span>
               </div>
+
+              <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                {currency === 'EUR'
+                  ? 'VAT included in EUR checkout total • Processed securely by Polar.sh (Merchant of Record) • Discount codes can be entered on Polar checkout.'
+                  : 'Billed in USD (or local VAT-inclusive EUR) by Polar.sh (Merchant of Record) • Local VAT/sales tax calculated at checkout • Discount codes accepted on Polar.'}
+              </p>
             </div>
 
             {/* Optional Email Pre-fill */}
@@ -438,42 +422,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               />
               {emailError && (
                 <span className="text-[11px] text-red-400 pl-1 font-semibold">{emailError}</span>
-              )}
-            </div>
-
-            {/* Promo / Admin Pass Code (100% Free VIP Access) */}
-            <div className="flex flex-col gap-1 text-left pt-2 border-t border-slate-800/80">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Tag className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Promo / Admin Test Code</span>
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">e.g. SMOKETEST</span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <input
-                  type="text"
-                  value={promoCodeInput}
-                  onChange={(e) => {
-                    setPromoCodeInput(e.target.value);
-                    if (promoError) setPromoError('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleApplyPromo();
-                  }}
-                  placeholder="Enter code (e.g. SMOKETEST)"
-                  className="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-xs text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-emerald-400 transition-colors uppercase font-mono tracking-wider font-bold"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyPromo}
-                  className="px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
-                >
-                  Apply
-                </button>
-              </div>
-              {promoError && (
-                <span className="text-[11px] text-rose-400 pl-1 font-semibold">{promoError}</span>
               )}
             </div>
           </div>
@@ -514,7 +462,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
               )}
 
-                            {/* Vault Download Card */}
+              {/* Vault Download Card */}
               <a
                 href="/downloads/promptshift-master-rules-vault.zip"
                 download="promptshift-master-rules-vault.zip"

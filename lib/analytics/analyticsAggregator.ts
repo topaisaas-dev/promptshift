@@ -526,31 +526,33 @@ export class AnalyticsAggregator {
   }
 
   /**
-   * Generates edge infrastructure telemetry strictly from real events
+   * Generates edge infrastructure telemetry strictly from real observed events.
+   * External Cloudflare/Vercel dashboard metrics are explicitly null (never fabricated constants).
    */
   private static buildEdgeStats(
     pageViews: number,
     conversions: number,
-    totalBytes: number,
+    _totalBytes: number,
     events: AnalyticsEvent[],
     averageExecutionMs: number
   ): EdgeDeliveryStats {
-    const totalRequests = pageViews + conversions + events.filter((e) => e.type === 'mcp_tool_call' || e.type === 'llms_crawl').length;
     const realAiBotsCount = events.filter((e) => e.type === 'llms_crawl' || Boolean(e.botName)).length;
-    const bandwidthSavedMB = Number(((totalBytes + totalRequests * 12000) / (1024 * 1024)).toFixed(2));
-    const serverlessCalls = conversions + events.filter((e) => e.type === 'checkout_initiated' || e.type === 'mcp_tool_call').length;
+    const serverlessCalls =
+      conversions +
+      events.filter((e) => e.type === 'checkout_initiated' || e.type === 'mcp_tool_call').length;
 
     return {
-      cloudflareCacheHitRatio: totalRequests > 0 ? 100 : 0,
-      edgeBandwidthSavedMB: bandwidthSavedMB,
-      averageEdgeLatencyMs: averageExecutionMs > 0 ? Math.min(35, Math.round(averageExecutionMs / 4)) : 0,
-      wafThreatsBlocked: events.filter((e) => e.country === 'RU').length,
+      cloudflareCacheHitRatio: null,
+      edgeBandwidthSavedMB: null,
+      averageEdgeLatencyMs: null,
+      wafThreatsBlocked: 0,
       aiBotsAllowedCount: realAiBotsCount,
       vercelServerlessInvocations: serverlessCalls,
       vercelAverageExecutionDurationMs: averageExecutionMs,
-      coreWebVitalsLcpSec: totalRequests > 0 ? 0.75 : 0,
-      coreWebVitalsInpMs: totalRequests > 0 ? 24 : 0,
-      coreWebVitalsCls: 0.00,
+      coreWebVitalsLcpSec: null,
+      coreWebVitalsInpMs: null,
+      coreWebVitalsCls: null,
+      dataSourceNote: 'Edge cache hit & Core Web Vitals are measured in Vercel / Cloudflare Analytics',
     };
   }
 
@@ -651,10 +653,10 @@ export class AnalyticsAggregator {
       id: 'arb-infra',
       pillar: 'infra',
       pillarLabel: 'Infrastructure & Edge Execution Cost',
-      observedMetric: 'Edge requests served at $0 Egress',
-      currentValue: `${edge.cloudflareCacheHitRatio}% Edge Anycast`,
+      observedMetric: 'Observed serverless invocations & AI bot crawls',
+      currentValue: `${edge.vercelServerlessInvocations} API calls • ${edge.aiBotsAllowedCount} AI crawls`,
       trend: 'positive',
-      diagnostic: 'Cloudflare absorbs bandwidth and AI crawler requests, keeping Vercel compute spend at $0.00.',
+      diagnostic: 'Static SSG pages are served from Cloudflare/Vercel Edge cache (inspect exact cache ratio & CWV in Vercel/Cloudflare Analytics).',
       tradeoffA: 'Option A: Disable cache to force dynamic re-rendering on every hit.',
       tradeoffB: 'Option B: Maintain Edge caching policy (s-maxage=3600) on sitemap.xml, llms.txt, and /convert/*.',
       recommendedArbitrage: 'Agile Arbitrage B: Leverage free Anycast CDN to distribute content globally with zero overage fees.',

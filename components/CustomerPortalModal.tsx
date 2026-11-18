@@ -67,12 +67,8 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
   const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null);
 
   const isAdmin = Boolean(
-    (currentUser?.email && currentUser.email.toLowerCase().endsWith('@promptshift.dev')) ||
-    (typeof window !== 'undefined' && (
-      localStorage.getItem('promptshift_is_admin') === 'true' ||
-      sessionStorage.getItem('promptshift_is_admin') === 'true' ||
-      window.location.search.includes('admin=true')
-    ))
+    typeof window !== 'undefined' &&
+      sessionStorage.getItem('promptshift_admin_preview') === 'true'
   );
 
   const [authView, setAuthView] = useState<'signin' | 'signup' | 'forgot'>('signin');
@@ -85,7 +81,6 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [isGuestBypass, setIsGuestBypass] = useState(false);
-  const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -206,17 +201,25 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
     setIsEditingInfo(false);
   };
 
-  const dummyCliToken =
-    activePlan === 'team'
-      ? 'ps_team_84f901c9a41e974cb1853a8'
+  const verifiedOrderKey = invoices.find(
+    (inv) =>
+      inv.orderId &&
+      (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(inv.orderId) ||
+        /^polar_[a-zA-Z0-9_]{8,}$/.test(inv.orderId) ||
+        /^(PS-PRO-|PS-TEAM-|PSHIFT-|POLAR-)[A-Z0-9_-]{6,}$/i.test(inv.orderId))
+  )?.orderId;
+
+  const activeCliToken =
+    verifiedOrderKey ||
+    (activePlan === 'team'
+      ? 'PS-TEAM-POLAR-KEY-REQUIRED'
       : activePlan === 'pro'
-      ? 'ps_pro_84f901c9a41e974cb1853a8'
-      : activePlan === 'vip'
-      ? 'ps_vip_84f901c9a41e974cb1853a8'
-      : 'ps_live_84f901c9a41e974cb1853a8';
+      ? 'PS-PRO-POLAR-KEY-REQUIRED'
+      : '');
 
   const handleCopyToken = () => {
-    navigator.clipboard.writeText(dummyCliToken);
+    if (!activeCliToken) return;
+    navigator.clipboard.writeText(activeCliToken);
     setIsCopiedToken(true);
     AnalyticsTracker.trackCliTokenCopied(activePlan);
     setTimeout(() => setIsCopiedToken(false), 2000);
@@ -264,17 +267,10 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
       if (user?.email) {
         setCustomerInfo((prev) => ({ ...prev, email: user.email }));
         ClientVault.saveCustomerInfo({ ...customerInfo, email: user.email });
-
-        // Dispatch welcome confirmation email asynchronously
-        fetch('/api/email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'welcome_account', email: user.email }),
-        }).catch((err) => console.warn('[Auth] Welcome email notification error:', err));
       }
       setAuthPassword('');
       setAuthConfirmPassword('');
-      setAuthSuccess('Account created! Welcome email dispatched.');
+      setAuthSuccess('Local sovereign vault profile created.');
     } else {
       setAuthError(res.error || 'Registration failed.');
     }
@@ -287,8 +283,9 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
 
     const res = AuthManager.requestPasswordReset(authEmail);
     if (res.success) {
-      setGeneratedOtpHint(res.code || '123456');
-      setAuthSuccess('Recovery OTP dispatched! Use the code below and enter your new password.');
+      setAuthSuccess(
+        'If a local vault profile exists for this email on this browser, reset instructions have been initiated. Note: PromptShift stores zero accounts on servers — you can also clear local browser vault data from Settings.'
+      );
     } else {
       setAuthError(res.error || 'Failed to request reset.');
     }
@@ -663,12 +660,6 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
                     </button>
                   </div>
                 </div>
-
-                {generatedOtpHint && (
-                  <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300">
-                    <span>Security Verification Code: <strong className="font-mono text-white text-sm tracking-widest">{generatedOtpHint}</strong> (Valid 10 mins)</span>
-                  </div>
-                )}
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-bold text-textMuted">6-Digit Recovery Code</label>
@@ -1080,7 +1071,7 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-textMuted mt-0.5">
-                      Code: <strong className="text-emerald-400 font-mono">{PromoManager.getVipCode() || 'DEVVIP'}</strong> • Linked to:{' '}
+                      Session: <strong className="text-emerald-400 font-mono">{PromoManager.getVipCode() || 'ACTIVE'}</strong> • Linked to:{' '}
                       <span className="text-cyan-300 font-medium">{customerInfo.email || 'Sovereign Local Vault'}</span>
                     </p>
                     <p className="text-[11px] text-emerald-400/90 mt-1">
@@ -1240,18 +1231,24 @@ export const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({
               </p>
 
               <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-950 border border-borderColor font-mono text-xs text-slate-300">
-                <span className="truncate flex-1">{dummyCliToken}</span>
-                <button
-                  onClick={handleCopyToken}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-white transition-colors"
-                >
-                  {isCopiedToken ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{isCopiedToken ? 'Copied' : 'Copy'}</span>
-                </button>
+                <span className="truncate flex-1">
+                  {activeCliToken || 'Purchase a Single, Pro, or Team pass via Polar.sh to unlock your CLI license key'}
+                </span>
+                {activeCliToken && (
+                  <button
+                    onClick={handleCopyToken}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-white transition-colors"
+                  >
+                    {isCopiedToken ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{isCopiedToken ? 'Copied' : 'Copy'}</span>
+                  </button>
+                )}
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] font-mono text-textMuted">
-                <code>npx promptshift convert --token {dummyCliToken.slice(0, 12)}... --target claude</code>
+                <code>
+                  npx promptshift --to=claude --key={activeCliToken ? `${activeCliToken.slice(0, 14)}...` : '<YOUR_POLAR_ORDER_ID>'}
+                </code>
               </div>
             </div>
 

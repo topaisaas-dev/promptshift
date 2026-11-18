@@ -2,8 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CONVERSION_PAIRS, ConversionPairData } from '@/lib/seo/conversionPairs';
-import { PageTracker } from '@/components/PageTracker';
+import { CONVERSION_PAIRS } from '@/lib/seo/conversionPairs';
+import { ExpressCheckoutLink } from '@/components/ExpressCheckoutLink';
 
 interface PageProps {
   params: Promise<{ pair: string }>;
@@ -180,7 +180,6 @@ export default async function ConversionPairPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PageTracker path={`/convert/${data.slug}`} />
 
       <div className="w-full">
         {/* Breadcrumbs */}
@@ -217,12 +216,14 @@ export default async function ConversionPairPage({ params }: PageProps) {
             >
               🚀 Drop &amp; Convert ({data.sourceName} → {data.targetName})
             </Link>
-            <a
-              href={`/api/checkout/express?plan=single&channel=pseo&pair=${data.slug}`}
+            <ExpressCheckoutLink
+              plan="single"
+              channel="pseo"
+              pair={data.slug}
               className="w-full sm:w-auto px-6 py-4 rounded-xl border border-cyan-500/40 hover:border-cyan-400 bg-slate-900/80 hover:bg-slate-800 text-cyan-300 text-sm font-bold transition-all text-center"
             >
-              ⚡ Unlock 4-in-1 Suite ($1.99)
-            </a>
+              ⚡ Unlock 4-in-1 Suite ($1.99 + Free 50+ Vault)
+            </ExpressCheckoutLink>
           </div>
         </div>
 
@@ -387,7 +388,7 @@ export default async function ConversionPairPage({ params }: PageProps) {
             Zero surprise fees. Instant 1-click checkout powered by Polar.sh as Merchant of Record with automated VAT receipts.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-6">
             <Link
               href={`/?source=${data.sourceKey}&target=${data.targetKey}#dropzone`}
               className="p-4 rounded-xl border border-slate-800 hover:border-emerald-500/50 bg-slate-950/70 transition-all block"
@@ -396,23 +397,43 @@ export default async function ConversionPairPage({ params }: PageProps) {
               <div className="text-2xl font-black text-white my-1">$0.00</div>
               <div className="text-xs text-slate-400">Up to 2 files • Zero signup →</div>
             </Link>
-            <a
-              href={`/api/checkout/express?plan=single&channel=pseo&pair=${data.slug}`}
+            <ExpressCheckoutLink
+              plan="single"
+              channel="pseo"
+              pair={data.slug}
               className="p-4 rounded-xl border border-cyan-500/50 hover:border-cyan-400 bg-cyan-950/40 relative transition-all block shadow-lg shadow-cyan-500/10"
             >
-              <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-cyan-500 text-[10px] font-bold text-black uppercase">Most Popular</span>
+              <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-cyan-500 text-[9px] font-bold text-black uppercase">
+                + Free 50+ Vault
+              </span>
               <div className="text-xs font-mono text-cyan-400 uppercase">4-in-1 Suite Pass</div>
               <div className="text-2xl font-black text-white my-1">$1.99</div>
-              <div className="text-xs text-cyan-200">1-Click Polar Express →</div>
-            </a>
-            <a
-              href={`/api/checkout/express?plan=pro&channel=pseo&pair=${data.slug}`}
+              <div className="text-xs text-cyan-200">1-Time + $4.99 Rules Vault Free →</div>
+            </ExpressCheckoutLink>
+            <ExpressCheckoutLink
+              plan="pro"
+              channel="pseo"
+              pair={data.slug}
               className="p-4 rounded-xl border border-slate-800 hover:border-purple-500/50 bg-slate-950/70 transition-all block"
             >
               <div className="text-xs font-mono text-purple-400 uppercase">Pro Developer</div>
-              <div className="text-2xl font-black text-white my-1">$5.99<span className="text-xs font-normal text-slate-400">/mo</span></div>
-              <div className="text-xs text-slate-400">Unlimited + CLI Key →</div>
-            </a>
+              <div className="text-2xl font-black text-white my-1">
+                $5.99<span className="text-xs font-normal text-slate-400">/mo</span>
+              </div>
+              <div className="text-xs text-slate-400">Unlimited + CLI &amp; MCP Key →</div>
+            </ExpressCheckoutLink>
+            <ExpressCheckoutLink
+              plan="team"
+              channel="pseo"
+              pair={data.slug}
+              className="p-4 rounded-xl border border-purple-500/30 hover:border-purple-400 bg-slate-950/70 transition-all block"
+            >
+              <div className="text-xs font-mono text-indigo-400 uppercase">Team &amp; Agency</div>
+              <div className="text-2xl font-black text-white my-1">
+                $19.99<span className="text-xs font-normal text-slate-400">/mo</span>
+              </div>
+              <div className="text-xs text-slate-400">5 Seats + CI/CD + DPA →</div>
+            </ExpressCheckoutLink>
           </div>
 
           <Link

@@ -23,6 +23,9 @@ const FREE_FILE_LIMIT = 2;
 const POLAR_SINGLE_URL = 'https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E';
 const POLAR_PRO_URL = 'https://buy.polar.sh/polar_cl_tRb5IIABbdflDV5GIJu3VcxPRMUrP6Ok99igV0zdJ5a';
 const POLAR_TEAM_URL = 'https://buy.polar.sh/polar_cl_Pk9oe3UPJgQRhOwDCDUdawKOOdi2cL2XHyRqZ3QFfvC';
+const CLI_SINGLE_URL = 'https://promptshift.dev/api/checkout/express?plan=single&channel=cli';
+const CLI_PRO_URL = 'https://promptshift.dev/api/checkout/express?plan=pro&channel=cli';
+const BADGE_LINK_URL = 'https://promptshift.dev/?utm_source=github&utm_medium=badge&utm_campaign=readme_parity';
 
 function isValidLicenseKey(rawKey) {
   if (!rawKey || typeof rawKey !== 'string') return false;
@@ -637,10 +640,10 @@ function renderInFlowTerminalPaywall(detected, target, outputFiles, redactedCoun
   console.error(`${yellow('┃')} ${bold('🚀 UNLOCK ALL FILES IN 10 SECONDS (NO ACCOUNT NEEDED):')}              ${yellow('┃')}`);
   console.error(`${yellow('┃')}                                                                     ${yellow('┃')}`);
   console.error(`${yellow('┃')}   ${magenta('1) Single Repo Pass ($1.99)')}:                                      ${yellow('┃')}`);
-  console.error(`${yellow('┃')}      ${cyan(POLAR_SINGLE_URL)}   ${yellow('┃')}`);
+  console.error(`${yellow('┃')}      ${cyan(CLI_SINGLE_URL)}   ${yellow('┃')}`);
   console.error(`${yellow('┃')}                                                                     ${yellow('┃')}`);
   console.error(`${yellow('┃')}   ${magenta('2) Pro Unlimited + CI/CD ($5.99/mo)')}:                              ${yellow('┃')}`);
-  console.error(`${yellow('┃')}      ${cyan(POLAR_PRO_URL)}   ${yellow('┃')}`);
+  console.error(`${yellow('┃')}      ${cyan(CLI_PRO_URL)}   ${yellow('┃')}`);
   console.error(`${yellow('┃')}                                                                     ${yellow('┃')}`);
   console.error(`${yellow('┃')} ${bold('Then re-run with your Polar Order ID:')}                               ${yellow('┃')}`);
   console.error(`${yellow('┃')}   $ ${green(`npx promptshift --to=${target} --key=<YOUR_ORDER_ID>`)}            ${yellow('┃')}`);
@@ -686,10 +689,10 @@ jobs:
   console.log(`\n${green(bold('✔ Created GitHub Actions Workflow:'))} ${cyan('.github/workflows/promptshift-parity.yml')}`);
   console.log(`\n${bold('Next Steps:')}`);
   console.log(`  1. Commit and push: ${cyan('git add .github && git commit -m "ci: add promptshift parity guard"')}`);
-  console.log(`  2. Add your Pro / Team Key to GitHub Secrets: ${green('PROMPTSHIFT_KEY')} (${cyan(POLAR_PRO_URL)})`);
+  console.log(`  2. Add your Pro / Team Key to GitHub Secrets: ${green('PROMPTSHIFT_KEY')} (${cyan(CLI_PRO_URL)})`);
   console.log(`  3. Every PR will now be continuously audited for rules drift and credential leaks!`);
   console.log(`\n${dim('Badge Snippet for your README.md:')}`);
-  console.log(`  [![PromptShift Certified](https://promptshift.dev/api/badge?score=98.5)](https://promptshift.dev)\n`);
+  console.log(`  [![PromptShift Certified](https://promptshift.dev/api/badge?score=98.5)](${BADGE_LINK_URL})\n`);
 }
 
 function writeGitHubStepSummary(detected, target, parityScore, redactedCount, isSuccess, errorMsg) {
@@ -697,7 +700,7 @@ function writeGitHubStepSummary(detected, target, parityScore, redactedCount, is
   if (!summaryPath) return;
 
   const badgeUrl = 'https://promptshift.dev/api/badge?score=98.5';
-  const siteUrl = 'https://promptshift.dev';
+  const siteUrl = BADGE_LINK_URL;
 
   let markdown = `## 🛡️ PromptShift AI Rules Parity Report\n\n`;
   markdown += `[![PromptShift Parity](${badgeUrl})](${siteUrl})\n\n`;
@@ -743,6 +746,24 @@ function startWatcher(opts) {
     try {
       const detected = detectProject(opts.dir);
       const { outputFiles, redactedCount } = transpileLocal(detected, target);
+      const sourceFileCount = (detected.masterPrompt ? 1 : 0) + detected.rules.length;
+      const totalGenerated = Object.keys(outputFiles).length;
+      const hasValidKey = isValidLicenseKey(opts.key);
+
+      if (!hasValidKey && (sourceFileCount > FREE_FILE_LIMIT || totalGenerated > 3)) {
+        // Enforce Free Starter quota in --watch mode (write primary master file only)
+        const firstEntry = Object.entries(outputFiles)[0];
+        if (firstEntry) {
+          const [relPath, content] = firstEntry;
+          const fullPath = path.join(opts.dir, relPath);
+          const parentDir = path.dirname(fullPath);
+          if (!fs.existsSync(parentDir)) fs.mkdirSync(parentDir, { recursive: true });
+          fs.writeFileSync(fullPath, content, 'utf-8');
+        }
+        renderInFlowTerminalPaywall(detected, target, outputFiles, redactedCount, false);
+        return;
+      }
+
       for (const [relPath, content] of Object.entries(outputFiles)) {
         const fullPath = path.join(opts.dir, relPath);
         const parentDir = path.dirname(fullPath);
@@ -813,9 +834,9 @@ async function main() {
   if (opts.badge) {
     console.log(`\n${bold('PromptShift Official Certified Badges:')}\n`);
     console.log(`${cyan('Markdown:')}`);
-    console.log(`[![PromptShift Certified](https://promptshift.dev/api/badge?score=98.5)](https://promptshift.dev)\n`);
+    console.log(`[![PromptShift Certified](https://promptshift.dev/api/badge?score=98.5)](${BADGE_LINK_URL})\n`);
     console.log(`${cyan('HTML:')}`);
-    console.log(`<a href="https://promptshift.dev"><img src="https://promptshift.dev/api/badge?score=98.5" alt="PromptShift Certified" /></a>\n`);
+    console.log(`<a href="${BADGE_LINK_URL}"><img src="https://promptshift.dev/api/badge?score=98.5" alt="PromptShift Certified" /></a>\n`);
     return;
   }
 
@@ -911,7 +932,7 @@ async function main() {
   if (!opts.key) {
     console.log(`\n${bold('💡 SYNC ALL 4 AI AGENTS IN 1 CLICK:')}`);
     console.log(`  Synchronize Cursor (.cursorrules) + Claude (CLAUDE.md) + Copilot + Gemini simultaneously:`);
-    console.log(`  👉 ${cyan(POLAR_SINGLE_URL)} ${dim('(Instant $1.99 Single Pass)')}`);
+    console.log(`  👉 ${cyan(CLI_SINGLE_URL)} ${dim('(Instant $1.99 Single Pass)')}`);
     console.log(`  Continuous drift guard in CI/CD: ${green('npx promptshift --init-ci')}`);
   }
 

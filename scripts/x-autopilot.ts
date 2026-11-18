@@ -345,11 +345,14 @@ export async function runAutopilot(): Promise<void> {
 
   console.log(`Loaded Post Catalog: ${catalog.length} annual posts available (${postedIds.size} already broadcast)`);
 
-  // Format Reply Tweet with Full Omnichannel UTM Tracking (utm_campaign=devrel_daily)
-  const utmUrl = `https://promptshift.dev?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${candidate.id}`;
+  // Format Reply Tweet with Full Omnichannel UTM Tracking (preserving any sub-path cleanly)
+  const utmSuffix = `?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${candidate.id}`;
   const formattedReplyTweet = candidate.replyTweet.includes('utm_campaign=')
     ? candidate.replyTweet
-    : candidate.replyTweet.replace(/https:\/\/promptshift\.dev(?!\?)/g, utmUrl);
+    : candidate.replyTweet.replace(
+        /https:\/\/promptshift\.dev(?:\/[^\s?#]*)?(?!\?)/g,
+        (matchedUrl) => `${matchedUrl}${utmSuffix}`
+      );
 
   console.log('Selected Post ID: [' + candidate.id + '] (Category: ' + candidate.category + ')');
   console.log('----------------------------------------------------');
