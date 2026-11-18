@@ -4,6 +4,7 @@ import path from 'node:path';
 import { CheckCheckService } from '../lib/analytics/checkcheckService';
 import { PolarService } from '../lib/payments/polarService';
 import { ServerTelemetryStore } from '../lib/analytics/serverTelemetryStore';
+import { injectUtmParams } from '../scripts/x-autopilot';
 
 async function runTests() {
   console.log('🧪 Running Sovereign (checkcheck) & Paywall Hardening Test Suite...\n');
@@ -103,7 +104,38 @@ async function runTests() {
       stage.signal_et_decision_arbitrage.length > 25,
       `Funnel stage ${stage.code_etape} must include detailed Agile Arbitrage decision`
     );
+    assert.ok(
+      !stage.fuite_identifiee.includes('X API blocked on HTTP 402'),
+      `Funnel stage ${stage.code_etape} must not contain stale X API HTTP 402 text`
+    );
   }
+  assert.strictEqual(
+    report.studioHealth.xAutopilotStatus.status,
+    'ACTIVE_LIVE',
+    'xAutopilotStatus must report ACTIVE_LIVE'
+  );
+
+  // Verify X Autopilot UTM injector edge cases (trailing punctuation, existing query params, sub-paths, hash)
+  assert.strictEqual(
+    injectUtmParams('Ship at https://promptshift.dev.', 'p01'),
+    'Ship at https://promptshift.dev?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=p01.',
+    'Trailing period must stay outside the injected UTM query string'
+  );
+  assert.strictEqual(
+    injectUtmParams('CLI: https://promptshift.dev/cli?ref=1', 'p02'),
+    'CLI: https://promptshift.dev/cli?ref=1&utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=p02',
+    'Existing query parameters must append UTM with & without regex backtracking'
+  );
+  assert.strictEqual(
+    injectUtmParams('Bridge: https://promptshift.dev/convert/cursor-to-claude', 'p03'),
+    'Bridge: https://promptshift.dev/convert/cursor-to-claude?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=p03',
+    'Sub-paths must cleanly receive ?utm_source=...'
+  );
+  assert.strictEqual(
+    injectUtmParams('Try (https://promptshift.dev/convert/cursor-to-claude#dropzone), now!', 'p04'),
+    'Try (https://promptshift.dev/convert/cursor-to-claude?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=p04#dropzone), now!',
+    'Hash fragments and trailing ), punctuation must be preserved cleanly'
+  );
 
   const csv = CheckCheckService.toCsv(report);
   const csvLines = csv.trim().split('\n');

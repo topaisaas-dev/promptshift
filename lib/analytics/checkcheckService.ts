@@ -509,15 +509,15 @@ export class CheckCheckService {
       {
         etape: 1,
         code_etape: 'FUNNEL-01-DISCOVERY',
-        intitule_etape: '1. Human Visits & US Agent Probes (Web, pSEO, MCP, llms.txt)',
+        intitule_etape: '1. Human Visits & US Agent Probes (Web, pSEO, MCP, llms.txt, X Autopilot)',
         volume_reel: stage1Discovery,
         taux_passage_pct: '100.0%',
         fuite_identifiee:
-          'Zero X.com social traffic (X API blocked on HTTP 402) and lack of standardized MCP server-card.',
+          `${xHistory.totalBroadcasts} live X.com threads published (ACTIVE_LIVE, last run: ${xHistory.lastRun || 'recent'}), but X mobile WebViews previously dropped UTM parameters before checkout and MCP directories lacked a standardized server-card.`,
         correctif_deploye:
-          'Added /.well-known/mcp/server-card.json + /.well-known/agent.json + RFC 8288 Link Header + clear X API diagnostic.',
+          `Added /.well-known/mcp/server-card.json + /.well-known/agent.json + RFC 8288 Link Header + end-to-end X Autopilot UTM persistence (${xHistory.totalBroadcasts} live broadcasts) into Polar checkout metadata.`,
         signal_et_decision_arbitrage:
-          'OPEN TOP-OF-FUNNEL GATES -> Unlock console.x.com ($20 credit) + submit MCP server to Smithery/Glama + submit 3 GitHub Awesome PRs to drive continuous qualified US developer traffic.',
+          `SCALE TOP-OF-FUNNEL ACQUISITION -> Keep 2x daily EN X Autopilot ACTIVE_LIVE (${xHistory.totalBroadcasts} broadcasts published) with hardened UTM attribution + submit MCP server-card to Smithery/Glama + submit 3 GitHub Awesome PRs.`,
       },
       {
         etape: 2,

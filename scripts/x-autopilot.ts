@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 
-import { X_POSTS_CATALOG, type XPost } from './x-posts-catalog.ts';
+import { X_POSTS_CATALOG, type XPost } from './x-posts-catalog';
 export type { XPost };
 export { X_POSTS_CATALOG };
 
@@ -286,6 +286,31 @@ async function retweet(
   return { retweeted: Boolean(body.data?.retweeted) };
 }
 
+/**
+ * Safely injects UTM attribution query parameters into all https://promptshift.dev URLs
+ * in a tweet without regex backtracking bugs. Preserves sub-paths, existing query parameters
+ * (? vs &), URL hash fragments (#...), and trailing punctuation (e.g. ., ,, ), ]).
+ */
+export function injectUtmParams(text: string, postId: string): string {
+  const utmParams = `utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${encodeURIComponent(postId)}`;
+  return text.replace(/https:\/\/promptshift\.dev[^\s]*/g, (rawMatch) => {
+    const punctMatch = rawMatch.match(/[.,;:!?)'"\]]+$/);
+    const trailingPunct = punctMatch ? punctMatch[0] : '';
+    const cleanUrl = trailingPunct ? rawMatch.slice(0, -trailingPunct.length) : rawMatch;
+
+    if (cleanUrl.includes('utm_campaign=')) {
+      return rawMatch;
+    }
+
+    const hashIndex = cleanUrl.indexOf('#');
+    const beforeHash = hashIndex >= 0 ? cleanUrl.slice(0, hashIndex) : cleanUrl;
+    const hashPart = hashIndex >= 0 ? cleanUrl.slice(hashIndex) : '';
+    const separator = beforeHash.includes('?') ? '&' : '?';
+
+    return `${beforeHash}${separator}${utmParams}${hashPart}${trailingPunct}`;
+  });
+}
+
 export async function runAutopilot(): Promise<void> {
   const args = process.argv.slice(2);
   const isForceDryRun = args.includes('--dry-run') || process.env.DRY_RUN === 'true';
@@ -345,14 +370,8 @@ export async function runAutopilot(): Promise<void> {
 
   console.log(`Loaded Post Catalog: ${catalog.length} annual posts available (${postedIds.size} already broadcast)`);
 
-  // Format Reply Tweet with Full Omnichannel UTM Tracking (preserving any sub-path cleanly)
-  const utmSuffix = `?utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${candidate.id}`;
-  const formattedReplyTweet = candidate.replyTweet.includes('utm_campaign=')
-    ? candidate.replyTweet
-    : candidate.replyTweet.replace(
-        /https:\/\/promptshift\.dev(?:\/[^\s?#]*)?(?!\?)/g,
-        (matchedUrl) => `${matchedUrl}${utmSuffix}`
-      );
+  // Format Reply Tweet with Full Omnichannel UTM Tracking (preserving sub-paths, query params, and trailing punctuation)
+  const formattedReplyTweet = injectUtmParams(candidate.replyTweet, candidate.id);
 
   console.log('Selected Post ID: [' + candidate.id + '] (Category: ' + candidate.category + ')');
   console.log('----------------------------------------------------');
@@ -462,8 +481,12 @@ export async function runAutopilot(): Promise<void> {
 }
 
 // Direct execution check
-const isDirectRun = Boolean(process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href);
-if (isDirectRun || process.argv.length > 1) {
+const isDirectRun = Boolean(
+  process.argv[1] &&
+    (import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href ||
+      path.basename(process.argv[1]) === 'x-autopilot.ts')
+);
+if (isDirectRun) {
   runAutopilot().catch(err => {
     console.error('Fatal error:', err);
     process.exit(1);
