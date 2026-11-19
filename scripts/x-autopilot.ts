@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 
-import { X_POSTS_CATALOG, type XPost } from './x-posts-catalog';
+import { X_POSTS_CATALOG, type XPost } from './x-posts-catalog.ts';
 export type { XPost };
 export { X_POSTS_CATALOG };
 
