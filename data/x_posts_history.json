@@ -1,6 +1,6 @@
 {
-  "lastRun": "2026-11-19T22:26:50.457Z",
-  "totalBroadcasts": 26,
+  "lastRun": "2026-11-20T21:54:43.347Z",
+  "totalBroadcasts": 27,
   "history": [
     {
       "id": "post-d001-morning",
@@ -233,6 +233,15 @@
       "postedAt": "2026-11-19T22:26:50.457Z",
       "mainTweetId": "2123543519063072772",
       "replyTweetId": "2123543530685501900",
+      "simulated": false,
+      "retweetedBy3K": true
+    },
+    {
+      "id": "post-d014-morning",
+      "category": "ast-parity",
+      "postedAt": "2026-11-20T21:54:43.347Z",
+      "mainTweetId": "2123897824349704266",
+      "replyTweetId": "2123897836001440095",
       "simulated": false,
       "retweetedBy3K": true
     }
