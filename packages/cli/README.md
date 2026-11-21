@@ -52,6 +52,33 @@ Add to your `claude_desktop_config.json`:
 
 ---
 
+## 🌉 20 Universal AI IDE Migration Bridges (1-Click Transpilers)
+
+| Migration Pair | Live 1-Click In-RAM Studio |
+| :--- | :--- |
+| **Cursor → Anthropic Claude** | [promptshift.dev/convert/cursor-to-claude](https://promptshift.dev/convert/cursor-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Anthropic Claude → Cursor** | [promptshift.dev/convert/claude-to-cursor](https://promptshift.dev/convert/claude-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Google Gemini / Antigravity → Cursor** | [promptshift.dev/convert/gemini-to-cursor](https://promptshift.dev/convert/gemini-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Cursor → Google Gemini / Antigravity** | [promptshift.dev/convert/cursor-to-gemini](https://promptshift.dev/convert/cursor-to-gemini?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **OpenAI Custom GPT → Cursor** | [promptshift.dev/convert/openai-to-cursor](https://promptshift.dev/convert/openai-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Cursor → OpenAI Custom GPT** | [promptshift.dev/convert/cursor-to-openai](https://promptshift.dev/convert/cursor-to-openai?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Anthropic Claude → OpenAI Custom GPT** | [promptshift.dev/convert/claude-to-openai](https://promptshift.dev/convert/claude-to-openai?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **OpenAI Custom GPT → Anthropic Claude** | [promptshift.dev/convert/openai-to-claude](https://promptshift.dev/convert/openai-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Google Antigravity → Anthropic Claude** | [promptshift.dev/convert/antigravity-to-claude](https://promptshift.dev/convert/antigravity-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Anthropic Claude → Google Antigravity** | [promptshift.dev/convert/claude-to-antigravity](https://promptshift.dev/convert/claude-to-antigravity?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Google Antigravity → Cursor** | [promptshift.dev/convert/antigravity-to-cursor](https://promptshift.dev/convert/antigravity-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Google Gemini → Anthropic Claude** | [promptshift.dev/convert/gemini-to-claude](https://promptshift.dev/convert/gemini-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Cursor → GitHub Copilot** | [promptshift.dev/convert/cursor-to-copilot](https://promptshift.dev/convert/cursor-to-copilot?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **GitHub Copilot → Cursor** | [promptshift.dev/convert/copilot-to-cursor](https://promptshift.dev/convert/copilot-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Cursor → Windsurf Cascade** | [promptshift.dev/convert/cursor-to-windsurf](https://promptshift.dev/convert/cursor-to-windsurf?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Windsurf Cascade → Cursor** | [promptshift.dev/convert/windsurf-to-cursor](https://promptshift.dev/convert/windsurf-to-cursor?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Anthropic Claude Code → GitHub Copilot** | [promptshift.dev/convert/claude-to-copilot](https://promptshift.dev/convert/claude-to-copilot?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **GitHub Copilot → Anthropic Claude Code** | [promptshift.dev/convert/copilot-to-claude](https://promptshift.dev/convert/copilot-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Anthropic Claude Code → Windsurf Cascade** | [promptshift.dev/convert/claude-to-windsurf](https://promptshift.dev/convert/claude-to-windsurf?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+| **Windsurf Cascade → Anthropic Claude Code** | [promptshift.dev/convert/windsurf-to-claude](https://promptshift.dev/convert/windsurf-to-claude?utm_source=npmjs&utm_medium=readme_matrix&utm_campaign=da93_seo) |
+
+---
+
 ## 💳 Commercial Access & Quotas
 - **Free Starter**: Up to 2 rule files completely free forever.
 - **Single Deposit Pass ($1.99 one-time)**: [Instant Checkout](https://buy.polar.sh/polar_cl_fGe6iBikmKFXK6EUnPpBLNSP66Oc4P3K5b5Mb4ZvH5E)

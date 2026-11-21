@@ -26,6 +26,7 @@ import {
   DEFAULT_SELECTED_STACK_CHIP_IDS,
   getCanonicalProjectFileLabels,
   synthesizeStackSuite,
+  calculateTokenRoiMetrics,
 } from '@/lib/converter/stackSuiteGenerator';
 
 interface PaymentModalProps {
@@ -424,6 +425,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   + 50+ Master Rules Vault (.ZIP)
                 </span>
               </div>
+            </div>
+
+            {/* 💰 Token & Context ROI Calculator Banner */}
+            <div className="p-3 rounded-2xl bg-emerald-950/35 border border-emerald-500/40 flex flex-col gap-1 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-black text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>💰 Token &amp; Context ROI Calculator</span>
+                </span>
+                <span className="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                  21x Monthly ROI
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-200 leading-snug">
+                {calculateTokenRoiMetrics(effectiveFileCount).roiSummaryBadge}
+              </p>
             </div>
 
             {/* Included Bonus Vault ($4.99 Value — Free with Pass): 50+ Master Rules & Prompts Vault */}

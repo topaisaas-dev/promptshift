@@ -69,6 +69,7 @@ export default function AdminDashboardPage() {
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [polarMetrics, setPolarMetrics] = useState<PolarLiveCommercialSnapshot | null>(null);
   const [isCopiedPost, setIsCopiedPost] = useState(false);
+  const [copiedOmnichannelId, setCopiedOmnichannelId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
 
@@ -379,6 +380,12 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
     navigator.clipboard.writeText(linkedInPostText);
     setIsCopiedPost(true);
     setTimeout(() => setIsCopiedPost(false), 2500);
+  };
+
+  const copyOmnichannelSnippet = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedOmnichannelId(id);
+    setTimeout(() => setCopiedOmnichannelId((prev) => (prev === id ? null : prev)), 2500);
   };
 
   if (isCheckingAuth) {
@@ -1129,7 +1136,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                     summary.geoSearchInbound.recentReferrals.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-900/40 transition-colors">
                         <td className="p-3 text-textMuted whitespace-nowrap">
-                          {new Date(r.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(r.timestamp).toLocaleDateString('fr-FR', { month: '2-digit', day: '2-digit' })}
+                          {new Date(r.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(r.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
                         </td>
                         <td className="p-3">
                           <span
@@ -1144,7 +1151,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                                 ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                                 : r.sourceName.includes('X.com')
                                 ? 'bg-slate-800 text-slate-300 border border-slate-700'
-                                : r.sourceName.includes('Crawler') || r.sourceName.includes('Indexeur')
+                                : r.sourceName.includes('Crawler') || r.sourceName.includes('Indexer')
                                 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                                 : 'bg-slate-900 text-slate-400'
                             }`}
@@ -1160,7 +1167,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                           </span>
                         </td>
                         <td className="p-3 text-slate-400 text-[10px] truncate max-w-xs" title={r.userAgentSnippet}>
-                          {r.userAgentSnippet || 'navigateur web standard'}
+                          {r.userAgentSnippet || 'standard web browser'}
                         </td>
                       </tr>
                     ))
@@ -1436,7 +1443,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                           </td>
                           <td className="p-3 text-cyan-300 font-mono font-medium">{entry.path}</td>
                           <td className="p-3 text-slate-300 text-xs font-sans">
-                            {entry.campaignOrPost === 'Direct Bio / Post Link' || entry.campaignOrPost === 'Lien direct bio/post' ? (
+                            {entry.campaignOrPost === 'Direct Bio / Post Link' ? (
                               <span className="text-slate-400 italic">Direct Bio / Post Link</span>
                             ) : (
                               <span className="px-2 py-0.5 rounded bg-slate-900 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-semibold">
@@ -1467,13 +1474,13 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                           <td className="p-3">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                                entry.actionTriggered.includes('Payment Completed') || entry.actionTriggered === 'Achat validé'
+                                entry.actionTriggered.includes('Payment Completed')
                                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                  : entry.actionTriggered.includes('Checkout') || entry.actionTriggered === 'Passage en caisse'
+                                  : entry.actionTriggered.includes('Checkout')
                                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                                  : entry.actionTriggered.includes('Paywall') || entry.actionTriggered === 'Collision paywall 402'
+                                  : entry.actionTriggered.includes('Paywall')
                                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                  : entry.actionTriggered.includes('Upload') || entry.actionTriggered === 'Upload projet'
+                                  : entry.actionTriggered.includes('Upload')
                                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                                   : 'bg-slate-900 text-slate-400 border border-slate-800'
                               }`}
@@ -1711,7 +1718,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white">{summary.totalPageViews}</span>
                 <span className="text-[10px] text-textMuted font-mono">
-                  {summary.uniqueSessions} session{summary.uniqueSessions > 1 ? 's' : ''} unique{summary.uniqueSessions > 1 ? 's' : ''}
+                  {summary.uniqueSessions} unique session{summary.uniqueSessions > 1 ? 's' : ''}
                 </span>
               </div>
               <p className="text-[10px] text-emerald-400 font-semibold mt-1">
@@ -1841,16 +1848,16 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                     </td>
                     <td className="py-3.5 px-4 align-top text-[11px] space-y-1.5">
                       <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800 text-slate-400">
-                        <strong className="text-slate-300">A:</strong> {item.tradeoffA.replace(/^Option A : /, '')}
+                        <strong className="text-slate-300">A:</strong> {item.tradeoffA.replace(/^Option A\s*:\s*/, '')}
                       </div>
                       <div className="p-2 rounded-lg bg-cyan-950/30 border border-cyan-500/20 text-cyan-200">
-                        <strong className="text-cyan-400">B:</strong> {item.tradeoffB.replace(/^Option B : /, '')}
+                        <strong className="text-cyan-400">B:</strong> {item.tradeoffB.replace(/^Option B\s*:\s*/, '')}
                       </div>
                     </td>
                     <td className="py-3.5 px-4 align-top text-[11px]">
                       <div className="font-bold text-cyan-300 mb-1">{item.recommendedArbitrage}</div>
                       <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-emerald-300 text-[10px] font-mono">
-                        ⚡ <strong>Action :</strong> {item.immediateAgileAction}
+                        ⚡ <strong>Action:</strong> {item.immediateAgileAction}
                       </div>
                     </td>
                     <td className="py-3.5 px-4 align-top text-center">
@@ -2355,7 +2362,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
               </div>
               <div>
                 <h2 className="text-sm font-extrabold text-white flex items-center gap-2">
-                  Google Search Console & Indexation Autonome (API)
+                  Google Search Console &amp; Autonomous Indexing (API)
                   <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
                     Property Deployed
                   </span>
@@ -2373,7 +2380,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-colors"
               >
-                <span>Rouvrir Search Console</span>
+                <span>Open Search Console</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -2383,9 +2390,9 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
             {/* Vector 1: Root HTML file */}
             <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400">Vecteur 1 : Racine</span>
+                <span className="text-[10px] font-mono text-slate-400">Vector 1: Root Verification</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> En ligne
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Online
                 </span>
               </div>
               <div className="text-xs font-mono text-cyan-300 truncate">
@@ -2401,7 +2408,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono text-slate-400">Vector 2: Sitemap Prefix</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> En ligne
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Online
                 </span>
               </div>
               <div className="text-xs font-mono text-cyan-300 truncate">
@@ -2415,7 +2422,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
             {/* Vector 3: Meta Tag */}
             <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col justify-between gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400">Vecteur 3 : Balise Meta</span>
+                <span className="text-[10px] font-mono text-slate-400">Vector 3: HTML Meta Tag</span>
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Active
                 </span>
@@ -2432,7 +2439,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
           {/* GSC Performance Baseline (CSV Export Data 2026-11-08) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Clics Organiques GSC</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">GSC Organic Clicks</span>
               <div className="text-xl font-black text-white font-mono mt-1">
                 {seoStatus?.gscReport?.summary?.totalClicks ?? 0}
               </div>
@@ -2440,28 +2447,28 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Impressions GSC</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">GSC Impressions</span>
               <div className="text-xl font-black text-white font-mono mt-1">
                 {seoStatus?.gscReport?.summary?.totalImpressions ?? 0}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">Recherche Web Google</span>
+              <span className="text-[10px] text-slate-500 mt-1">Google Web Search</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Taux de Clic (CTR)</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Click-Through Rate (CTR)</span>
               <div className="text-xl font-black text-cyan-300 font-mono mt-1">
                 {(seoStatus?.gscReport?.summary?.averageCtr ?? 0).toFixed(1)}%
               </div>
-              <span className="text-[10px] text-slate-500 mt-1">Indexation en cours</span>
+              <span className="text-[10px] text-slate-500 mt-1">Indexing in progress</span>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-emerald-500/30 flex flex-col justify-between">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 font-mono">Statut Indexation</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-400 font-mono">Indexing Status</span>
               <div className="text-xs font-bold text-emerald-300 font-mono mt-1 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>Property Validated (D+2)</span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1">Googlebot actif sur sitemap</span>
+              <span className="text-[10px] text-slate-400 mt-1">Googlebot active on sitemap</span>
             </div>
           </div>
 
@@ -2512,7 +2519,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                         </Link>
                       </td>
                       <td className="p-3 text-center text-slate-300">
-                        {item.monthlySearchVolumeEst.toLocaleString('fr-FR')} /m
+                        {item.monthlySearchVolumeEst.toLocaleString('en-US')} /m
                       </td>
                       <td className="p-3">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
@@ -2545,7 +2552,7 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                 disabled={seoLoading}
                 className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-mono text-xs font-semibold border border-cyan-500/40 transition-colors cursor-pointer disabled:opacity-50"
               >
-                📡 Soumettre Sitemap (API)
+                📡 Submit Sitemap (API)
               </button>
 
               <button
@@ -2562,6 +2569,152 @@ Try it with your project: https://promptshift.dev?utm_source=linkedin&utm_medium
                 {seoFeedback}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* 🚀 Omnichannel First-100-Sales Launchpad */}
+        <section className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0d192b] to-slate-950 border border-emerald-500/40 shadow-2xl flex flex-col gap-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-black text-white">
+                    🚀 Omnichannel First-100-Sales Launchpad (1-Click Distribution &amp; UTM Tracking)
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                    $1.99 IMPULSE HOOK
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    ~64% Context Bloat Reduction • Saves ~$42/mo
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Ready-to-click submit links and 1-click copyable high-converting posts with dedicated UTM attribution tags across Hacker News, Reddit, MCP Directories, and Product Hunt.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Omnichannel Distribution Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              {
+                id: 'hn_show',
+                badge: 'Hacker News • Show HN',
+                title: 'Show HN: PromptShift – In-RAM AST Transpiler Between Cursor .mdc, CLAUDE.md, Windsurf & Copilot',
+                submitLabel: '1-Click Submit Show HN →',
+                submitUrl:
+                  'https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fpromptshift.dev%3Futm_source%3Dhackernews%26utm_medium%3Dshow_hn%26utm_campaign%3Dfirst_100_sales&t=Show%20HN%3A%20PromptShift%20%E2%80%93%20In-RAM%20AST%20Transpiler%20Between%20Cursor%20.mdc%2C%20CLAUDE.md%2C%20Windsurf%20%26%20Copilot',
+                secondaryLinks: [],
+                copyText:
+                  'Hey HN,\n\nWe built PromptShift (https://promptshift.dev?utm_source=hackernews&utm_medium=show_hn_comment&utm_campaign=first_100_sales) to solve duplicate AI coding instructions across Cursor (.cursor/rules/*.mdc), Claude Code (CLAUDE.md), Windsurf (.windsurfrules), and GitHub Copilot (.github/copilot-instructions.md).\n\n- 100% In-RAM Execution & Secret Shield: Pick stack chips, import any GitHub owner/repo, or paste your package.json. Zero server retention + automatic OWASP secret redaction.\n- ~64% Context Bloat Reduction: Splits monolithic prompts into glob-scoped .cursor/rules/*.mdc modules (saves ~$42/mo in redundant tokens).\n- Open CLI & STDIO MCP Server: `npx promptshift --watch` or `npx promptshift --mcp`.\n\n2-file starter is free forever (zero signup). Unlocking all 8 bespoke stack files + 4-in-1 IDE bundle + 50+ Master Rules Vault is a one-time $1.99 pass (zero subscription trap, instant VAT PDF receipt).',
+              },
+              {
+                id: 'reddit_communities',
+                badge: 'Reddit • r/cursor & r/ClaudeAI & r/ChatGPTCoding',
+                title: 'In-RAM AST compiler that turns any package.json or CLAUDE.md into glob-scoped .cursor/rules/*.mdc (cuts token bloat by ~64%)',
+                submitLabel: 'Submit to r/cursor →',
+                submitUrl: 'https://www.reddit.com/r/cursor/submit',
+                secondaryLinks: [
+                  { label: 'r/ClaudeAI', url: 'https://www.reddit.com/r/ClaudeAI/submit' },
+                  { label: 'r/ChatGPTCoding', url: 'https://www.reddit.com/r/ChatGPTCoding/submit' },
+                  { label: 'r/SideProject', url: 'https://www.reddit.com/r/SideProject/submit' },
+                ],
+                copyText:
+                  'If you use Cursor alongside Claude Code or GitHub Copilot, keeping `.cursor/rules/*.mdc` frontmatter globs synchronized with `CLAUDE.md` is tedious—and loading a single massive `.cursorrules` file on every turn burns ~$42/mo in redundant context tokens.\n\nWe built PromptShift (https://promptshift.dev/convert/claude-to-cursor?utm_source=reddit&utm_medium=r_cursor&utm_campaign=first_100_sales):\n1. 4 Input Modes (no local .ZIP needed): Click stack chips (Next.js 15, React 19, Tailwind v4, Supabase RLS, FastAPI, Prisma, Playwright, OWASP), import any GitHub owner/repo, paste your package.json / prompt, or drop local files.\n2. ~64% Context Bloat Reduction: Generates quoted YAML frontmatter globs across 8 modular files.\n3. 100% In-RAM Secret Shield: Automatically redacts sk-*, sk-ant-*, and ghp_* keys.\n\n2-file preview + `npx promptshift` CLI are free. Unlocking all 8 bespoke files + 4-in-1 IDE bundle + 50+ Master Rules Vault is a one-time $1.99 pass (no subscription).',
+              },
+              {
+                id: 'mcp_registries',
+                badge: 'MCP & AI Coding Directories',
+                title: 'Smithery.ai • Glama.ai • cursor.directory • mcp.so • PulseMCP',
+                submitLabel: 'Submit on Smithery.ai →',
+                submitUrl: 'https://smithery.ai/new',
+                secondaryLinks: [
+                  { label: 'Glama.ai MCP', url: 'https://glama.ai/mcp/servers/topaisaas-dev/promptshift' },
+                  { label: 'cursor.directory', url: 'https://cursor.directory' },
+                  { label: 'mcp.so', url: 'https://mcp.so/submit' },
+                  { label: 'PulseMCP', url: 'https://www.pulsemcp.com/submit' },
+                ],
+                copyText:
+                  'Name: PromptShift Universal AST Transpiler & Secret Shield MCP\nRepository: https://github.com/topaisaas-dev/promptshift\nHomepage: https://promptshift.dev?utm_source=mcp_registry&utm_medium=directory&utm_campaign=first_100_sales\nCommand: npx -y promptshift --mcp\nDescription: Deterministic 98.5% AST transpiler & STDIO JSON-RPC 2.0 MCP server between Cursor (.cursor/rules/*.mdc), Claude Code (CLAUDE.md), Windsurf (.windsurfrules), and GitHub Copilot with 100% in-RAM OWASP secret redaction and 1-Click 8-File Stack Rules Builder ($1.99 one-time pass).',
+              },
+              {
+                id: 'ph_devto_linkedin',
+                badge: 'Product Hunt • Dev.to • LinkedIn',
+                title: 'Stop paying the "Context Bloat Tax" across Cursor, Claude Code, GitHub Copilot & Windsurf',
+                submitLabel: 'Submit on Product Hunt →',
+                submitUrl: 'https://www.producthunt.com/posts/new',
+                secondaryLinks: [
+                  { label: 'Dev.to New Post', url: 'https://dev.to/new' },
+                  { label: 'LinkedIn Feed', url: 'https://www.linkedin.com/feed/' },
+                ],
+                copyText:
+                  'Stop paying the "Context Bloat Tax" across Cursor, Claude Code, GitHub Copilot, and Windsurf. ⚡\n\nWhen your repository uses a monolithic rules file—or when CLAUDE.md drifts out of sync with .cursor/rules/*.mdc—your AI agents waste ~64% of every prompt window on irrelevant directives (~$42/mo in redundant tokens).\n\nWith PromptShift v1.2.1 (https://promptshift.dev?utm_source=producthunt_devto&utm_medium=social_launch&utm_campaign=first_100_sales):\n1. Click your stack chips, import any GitHub owner/repo, or paste your package.json.\n2. Compile a bespoke 8-file glob-scoped AI rules suite in 0.4s (100% in-RAM, zero server storage, automatic OWASP secret redaction).\n3. Preview 2 files free, or unlock all 8 files + the 4-in-1 IDE bundle + 50+ Master Rules Vault for a one-time $1.99 pass (zero subscription trap, instant expensable VAT PDF receipt).',
+              },
+            ].map((channel) => (
+              <div
+                key={channel.id}
+                className="p-4 rounded-2xl bg-slate-950/85 border border-slate-800 hover:border-emerald-500/40 flex flex-col justify-between gap-3 transition-all"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      {channel.badge}
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {channel.secondaryLinks.map((sec) => (
+                        <a
+                          key={sec.label}
+                          href={sec.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700"
+                        >
+                          {sec.label} ↗
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                  <h3 className="text-xs font-bold text-white leading-snug">{channel.title}</h3>
+                  <pre className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-300 font-mono whitespace-pre-wrap max-h-28 overflow-y-auto">
+                    {channel.copyText}
+                  </pre>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => copyOmnichannelSnippet(channel.id, channel.copyText)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    {copiedOmnichannelId === channel.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">Copied UTM Post!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy High-Converting Post</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={channel.submitUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all"
+                  >
+                    <span>{channel.submitLabel}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 

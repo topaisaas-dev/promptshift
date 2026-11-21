@@ -127,7 +127,7 @@ ${bold('EXAMPLES:')}
     }
 
     if (arg === '--version' || arg === '-v') {
-      console.log('promptshift v1.2.0');
+      console.log('promptshift v1.2.1');
       process.exit(0);
     }
 

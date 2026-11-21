@@ -9,6 +9,8 @@ import {
   synthesizeStackSuite,
   parseGitHubRepoInput,
   inferStackChipsFromSignals,
+  compilePastedPromptOrPackageSuite,
+  calculateTokenRoiMetrics,
 } from '../lib/converter/stackSuiteGenerator';
 import { injectUtmParams, X_POSTS_CATALOG } from '../scripts/x-autopilot';
 
@@ -217,6 +219,17 @@ async function runTests() {
   assert.deepStrictEqual(parsedGh, { owner: 'vercel', repo: 'next.js', fullName: 'vercel/next.js' });
   const inferredChips = inferStackChipsFromSignals('vercel/next.js TypeScript Tailwind Supabase');
   assert.ok(inferredChips.includes('nextjs15') && inferredChips.includes('supabase_rls'));
+
+  // Verify Mode 4 (Paste Prompt / package.json) & Token ROI Calculator
+  const pastedSuite = compilePastedPromptOrPackageSuite(
+    '{"name":"fintech-nextjs","dependencies":{"next":"15.1.0","@supabase/supabase-js":"2.48.0"}}'
+  );
+  assert.strictEqual(pastedSuite.totalFiles, 8, 'Mode 4 pasted package.json must compile into 8 files');
+  assert.strictEqual(pastedSuite.previewFiles, 2, 'Mode 4 must unlock 2 files in free preview');
+  assert.strictEqual(pastedSuite.lockedFileLabels.length, 6, 'Mode 4 must stage 6 locked files for $1.99');
+  assert.ok(pastedSuite.detectedChipIds.includes('nextjs15') && pastedSuite.detectedChipIds.includes('supabase_rls'));
+  const roiMetrics = calculateTokenRoiMetrics(8);
+  assert.ok(roiMetrics.roiSummaryBadge.includes('$42/mo') && roiMetrics.roiSummaryBadge.includes('$1.99'));
 
   const annualCatalog = JSON.parse(
     fs.readFileSync(path.join(rootDir, 'data', 'x_annual_posts_catalog.json'), 'utf8')

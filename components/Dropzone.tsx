@@ -24,6 +24,8 @@ import {
   GeneratedStackSuite,
   synthesizeStackSuite,
   importGitHubRepoSuite,
+  compilePastedPromptOrPackageSuite,
+  calculateTokenRoiMetrics,
 } from '@/lib/converter/stackSuiteGenerator';
 import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManager';
 import { MonetizationManager } from '@/lib/config/monetizationConfig';
@@ -89,10 +91,11 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     typeof window !== 'undefined' ? CurrencyManager.getActiveCurrency() : 'USD'
   );
 
-  // 1-Click Stack Rules Builder & GitHub Repo Importer State
+  // 1-Click Stack Rules Builder, GitHub Repo Importer & Mode 4 Paste Prompt / package.json State
   const [selectedChipIds, setSelectedChipIds] = useState<string[]>(DEFAULT_SELECTED_STACK_CHIP_IDS);
   const [githubRepoInput, setGithubRepoInput] = useState<string>('');
   const [isImportingGithub, setIsImportingGithub] = useState<boolean>(false);
+  const [pastedPromptInput, setPastedPromptInput] = useState<string>('');
   const [generatedSuite, setGeneratedSuite] = useState<GeneratedStackSuite | null>(null);
 
   const isFreeBeta = MonetizationManager.isFreeBeta();
@@ -284,6 +287,31 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       setErrorMessage(err.message || 'Unable to parse GitHub repository URL.');
     } finally {
       setIsImportingGithub(false);
+    }
+  };
+
+  const handleCompilePastedPrompt = (overrideText?: string) => {
+    const raw = (overrideText ?? pastedPromptInput).trim();
+    if (!raw) {
+      setErrorMessage(
+        'Paste a raw system prompt, package.json, .cursorrules snippet, or project description to compile.'
+      );
+      return;
+    }
+    setErrorMessage(null);
+    try {
+      const suite = compilePastedPromptOrPackageSuite(raw, { freeLimit });
+      if (suite.detectedChipIds.length > 0) {
+        setSelectedChipIds(suite.detectedChipIds);
+      }
+      commitGeneratedSuiteToRam(suite);
+      if (suite.secretsRedactedCount > 0) {
+        setPruningStats((prev) =>
+          prev ? { ...prev, secretsDetected: suite.secretsRedactedCount } : prev
+        );
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Unable to compile pasted prompt specification.');
     }
   };
 
@@ -778,6 +806,66 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           </div>
         </div>
 
+        {/* Path C (Mode 4): ✍️ Paste Prompt / package.json */}
+        <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-black text-[11px] uppercase tracking-wider">
+                ✍️ Mode 4 • Paste Prompt / package.json
+              </span>
+              <label htmlFor="paste-prompt-package-input" className="text-xs sm:text-sm font-bold text-white">
+                Paste raw system prompt, <code className="text-emerald-300">package.json</code>, or <code className="text-cyan-300">.cursorrules</code> snippet
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+              <span>1-click preset:</span>
+              {[
+                {
+                  label: 'package.json (Next 15 + Supabase)',
+                  snippet:
+                    '{\n  "name": "acme-saas-platform",\n  "description": "Next.js 15 App Router SaaS with Supabase Postgres RLS, Tailwind CSS v4 & Playwright",\n  "dependencies": { "next": "15.1.0", "react": "19.0.0", "@supabase/supabase-js": "^2.48.0", "tailwindcss": "^4.0.0", "zod": "^3.24.0" },\n  "devDependencies": { "@playwright/test": "^1.50.0", "vitest": "^3.0.0", "typescript": "^5.7.0" }\n}',
+                },
+                {
+                  label: 'FastAPI + Pydantic v2 Prompt',
+                  snippet:
+                    '# FinTech Core API Directives\nBuild async Python FastAPI endpoints with strict Pydantic v2 ConfigDict(extra="forbid"), PostgreSQL RLS, pytest verification, and OWASP zero-secret guardrails.',
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setPastedPromptInput(preset.snippet);
+                    handleCompilePastedPrompt(preset.snippet);
+                  }}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 font-mono text-[10px] border border-slate-700 cursor-pointer"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+            <textarea
+              id="paste-prompt-package-input"
+              rows={2}
+              value={pastedPromptInput}
+              onChange={(e) => setPastedPromptInput(e.target.value)}
+              placeholder='Paste your raw system prompt, package.json, .cursorrules, or project stack description here...'
+              className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-400 focus:outline-none text-xs text-white placeholder-slate-500 font-mono resize-y"
+            />
+            <button
+              type="button"
+              onClick={() => handleCompilePastedPrompt()}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap shadow-md"
+            >
+              <Sparkles className="w-3.5 h-3.5 fill-current" />
+              <span>Compile into 8-File AI Rules Suite</span>
+            </button>
+          </div>
+        </div>
+
         {/* High-Converting 2-of-8 Unlocked Preview & $1.99 Unlock Banner */}
         {generatedSuite && !hasPaidLicense && (
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-950 to-cyan-950/40 border-2 border-amber-400/60 flex flex-col gap-3.5 shadow-lg animate-fadeIn">
@@ -804,6 +892,18 @@ export const Dropzone: React.FC<DropzoneProps> = ({
                 <Sparkles className="w-4 h-4 fill-current" />
                 <span>Unlock All 8 Files ({singlePrice.formatted}) →</span>
               </button>
+            </div>
+
+            {/* 💰 Token & Context ROI Calculator Banner */}
+            <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center gap-2 text-emerald-200 font-semibold leading-snug">
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-black text-[10px] uppercase tracking-wider shrink-0">
+                  💰 Token &amp; Context ROI
+                </span>
+                <span>
+                  {calculateTokenRoiMetrics(generatedSuite.totalFiles).roiSummaryBadge}
+                </span>
+              </div>
             </div>
 
             {/* Concrete File List Preview: 2 Unlocked vs 6 Locked */}

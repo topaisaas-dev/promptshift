@@ -1,6 +1,6 @@
 {
   "name": "promptshift",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Deterministic AST Transpiler & STDIO MCP Server for AI Coding Agents (Cursor, Claude Code, Windsurf, Copilot, Cline, Aider)",
   "main": "bin/promptshift.js",
   "bin": {
@@ -14,18 +14,24 @@
   "keywords": [
     "promptshift",
     "mcp",
+    "mcp-server",
     "model-context-protocol",
     "cursor",
     "cursorrules",
     "claude",
     "claude-code",
+    "claudemd",
     "windsurf",
     "copilot",
+    "github-copilot",
     "openai",
     "gemini",
     "antigravity",
     "transpiler",
-    "ast-parity"
+    "ast-parity",
+    "prompt-engineering",
+    "devtools",
+    "llm"
   ],
   "author": "PromptShift Engineering Team <contact@promptshift.dev>",
   "license": "MIT",

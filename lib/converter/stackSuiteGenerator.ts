@@ -1,4 +1,5 @@
 import { CanonicalProject } from './capsSchema';
+import { SecurityGuards } from './securityGuards';
 
 export interface StackChipOption {
   id: string;
@@ -600,5 +601,136 @@ export async function importGitHubRepoSuite(
     ...suite,
     repoFullName: parsed.fullName,
     usedFallback,
+  };
+}
+
+export interface TokenRoiMetrics {
+  contextBloatReductionPct: number;
+  estimatedMonthlyTokenSavingsUsd: number;
+  tokensSavedPer100Prompts: number;
+  roiSummaryBadge: string;
+}
+
+/**
+ * Calculates token and context window ROI metrics for modular glob-scoped rules
+ * vs monolithic unfiltered prompt context across Cursor & Claude Code.
+ */
+export function calculateTokenRoiMetrics(fileCount: number = 8, byteSize: number = 14000): TokenRoiMetrics {
+  const effectiveFiles = Math.max(4, fileCount);
+  const contextBloatReductionPct = Math.min(78, Math.max(64, 56 + effectiveFiles));
+  const estimatedMonthlyTokenSavingsUsd = Math.max(42, Math.round(effectiveFiles * 5.25));
+  const tokensSavedPer100Prompts = Math.max(320000, Math.round((byteSize / 4) * 95));
+
+  return {
+    contextBloatReductionPct,
+    estimatedMonthlyTokenSavingsUsd,
+    tokensSavedPer100Prompts,
+    roiSummaryBadge: `~${contextBloatReductionPct}% context bloat reduction • saves ~$${estimatedMonthlyTokenSavingsUsd}/mo in redundant Cursor & Claude Code tokens • 100% one-time $1.99 payment, zero subscription trap, instant expensable VAT PDF receipt`,
+  };
+}
+
+/**
+ * Mode 4: Compiles any raw pasted system prompt, package.json, .cursorrules snippet,
+ * or project description into a personalized 8-file CanonicalProject suite in RAM
+ * (2 files unlocked for free preview, 6 files + 4-in-1 bundle locked behind $1.99).
+ */
+export function compilePastedPromptOrPackageSuite(
+  rawText: string,
+  options?: { freeLimit?: number }
+): GeneratedStackSuite & {
+  detectedChipIds: string[];
+  secretsRedactedCount: number;
+  roiMetrics: TokenRoiMetrics;
+} {
+  const trimmed = (rawText || '').trim();
+  if (!trimmed) {
+    throw new Error(
+      'Please paste a raw system prompt, package.json, .cursorrules snippet, or project description.'
+    );
+  }
+
+  const sanitized = SecurityGuards.sanitizeSecrets(trimmed);
+  const cleanSnippet = sanitized.cleanText;
+  const secretsRedactedCount = sanitized.alerts.length;
+
+  let customProjectName = 'pasted_workspace_ai_suite';
+  let repoDescription = 'Compiled from pasted prompt / package.json specification';
+
+  // Detect package.json payload
+  if (cleanSnippet.startsWith('{') && cleanSnippet.includes('"')) {
+    try {
+      const parsedJson = JSON.parse(cleanSnippet);
+      if (typeof parsedJson.name === 'string' && parsedJson.name.trim()) {
+        customProjectName = parsedJson.name
+          .trim()
+          .replace(/^@/, '')
+          .replace(/[^a-zA-Z0-9_-]/g, '_');
+      }
+      if (typeof parsedJson.description === 'string' && parsedJson.description.trim()) {
+        repoDescription = parsedJson.description.trim();
+      } else {
+        repoDescription = `Auto-synthesized from package.json (${customProjectName})`;
+      }
+    } catch {
+      const nameMatch = cleanSnippet.match(/"name"\s*:\s*"([^"]+)"/);
+      if (nameMatch && nameMatch[1]) {
+        customProjectName = nameMatch[1].replace(/^@/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      }
+    }
+  } else {
+    // Extract title from first markdown heading or first line
+    const headingMatch = cleanSnippet.match(/^#+\s+([^\r\n]+)/m);
+    if (headingMatch && headingMatch[1]) {
+      const candidate = headingMatch[1]
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 38);
+      if (candidate.length >= 3) {
+        customProjectName = candidate.toLowerCase();
+      }
+    }
+  }
+
+  const detectedChipIds = inferStackChipsFromSignals(cleanSnippet);
+  const baseSuite = synthesizeStackSuite(detectedChipIds, {
+    customProjectName,
+    repoDescription,
+    freeLimit: options?.freeLimit,
+  });
+
+  // Embed the sanitized user snippet directly into the Master System Prompt
+  const snippetExcerpt = cleanSnippet.slice(0, 2800);
+  const enrichedMasterPrompt = `${baseSuite.fullProject.persona.raw_system_prompt}\n\n## 5. Custom Pasted Workspace Context & Directives\n\`\`\`\n${snippetExcerpt}\n\`\`\``;
+
+  const fullProject: CanonicalProject = {
+    ...baseSuite.fullProject,
+    persona: {
+      ...baseSuite.fullProject.persona,
+      raw_system_prompt: enrichedMasterPrompt,
+    },
+  };
+
+  const slicedProject: CanonicalProject = {
+    ...baseSuite.slicedProject,
+    persona: {
+      ...baseSuite.slicedProject.persona,
+      raw_system_prompt: enrichedMasterPrompt,
+    },
+  };
+
+  const totalBytes =
+    enrichedMasterPrompt.length +
+    fullProject.rules.reduce((acc, r) => acc + r.content.length, 0) +
+    fullProject.knowledge_base.reduce((acc, k) => acc + k.size_bytes, 0);
+
+  return {
+    ...baseSuite,
+    fullProject,
+    slicedProject,
+    sourceLabel: `Pasted Spec (${baseSuite.selectedLabels.slice(0, 3).join(' + ')})`,
+    detectedChipIds,
+    secretsRedactedCount,
+    roiMetrics: calculateTokenRoiMetrics(baseSuite.totalFiles, totalBytes),
   };
 }

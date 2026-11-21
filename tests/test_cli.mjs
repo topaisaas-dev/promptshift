@@ -17,7 +17,7 @@ for (const cliPath of CLI_PATHS) {
 
   // 1. Test --version
   const versionOutput = execSync(`node "${cliPath}" --version`).toString();
-  assert.ok(versionOutput.includes('promptshift v1.2.0'), `CLI version check failed for ${label}`);
+  assert.ok(versionOutput.includes('promptshift v1.2.1'), `CLI version check failed for ${label}`);
 
   // 2. Test --help
   const helpOutput = execSync(`node "${cliPath}" --help`).toString();

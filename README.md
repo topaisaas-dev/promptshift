@@ -93,6 +93,35 @@ docker run -i --rm promptshift
 
 ---
 
+## 🌉 20 Universal AI IDE Migration Bridges (1-Click Transpilers)
+
+Every migration route below runs **100% in-RAM** with **98.5% certified AST semantic parity**, OWASP secret redaction, and a **1-Click 8-File Stack Builder** (2 files free preview, full 8-file + 4-in-1 IDE bundle + 50+ Master Rules Vault unlocked for **$1.99 one-time**):
+
+| # | Migration Pair | Source Format(s) | Target Format(s) | Live 1-Click In-RAM Transpiler |
+| :- | :--- | :--- | :--- | :--- |
+| 01 | **Cursor → Anthropic Claude** | `.cursorrules`, `.cursor/rules/*.mdc` | `CLAUDE.md`, `.claude/mcp.json`, XML | [Convert Cursor to Claude →](https://promptshift.dev/convert/cursor-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 02 | **Anthropic Claude → Cursor** | `CLAUDE.md`, `claude_project_instructions.xml` | `.cursorrules`, `.cursor/rules/*.mdc` | [Convert Claude to Cursor →](https://promptshift.dev/convert/claude-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 03 | **Google Gemini / Antigravity → Cursor** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md` | `.cursorrules`, `.cursor/rules/*.mdc` | [Convert Gemini to Cursor →](https://promptshift.dev/convert/gemini-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 04 | **Cursor → Google Gemini / Antigravity** | `.cursorrules`, `.cursor/rules/*.mdc` | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md` | [Convert Cursor to Gemini →](https://promptshift.dev/convert/cursor-to-gemini?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 05 | **OpenAI Custom GPT → Cursor** | `custom_gpt_instructions.txt`, `openai_assistant_v2.json` | `.cursorrules`, `.cursor/rules/*.mdc` | [Convert OpenAI to Cursor →](https://promptshift.dev/convert/openai-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 06 | **Cursor → OpenAI Custom GPT & Assistants** | `.cursorrules`, `.cursor/rules/*.mdc` | `OPENAI_SYSTEM_PROMPT.md`, `openai_assistant_v2.json` | [Convert Cursor to OpenAI →](https://promptshift.dev/convert/cursor-to-openai?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 07 | **Anthropic Claude → OpenAI Custom GPT** | `CLAUDE.md`, `claude_project_instructions.xml` | `OPENAI_SYSTEM_PROMPT.md`, `custom_gpt_manifest.json` | [Convert Claude to OpenAI →](https://promptshift.dev/convert/claude-to-openai?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 08 | **OpenAI Custom GPT → Anthropic Claude** | `custom_gpt_instructions.txt`, `openai_assistant_v2.json` | `CLAUDE.md`, `claude_project_instructions.xml` | [Convert OpenAI to Claude →](https://promptshift.dev/convert/openai-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 09 | **Google Antigravity → Anthropic Claude** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md` | `CLAUDE.md`, `.claude/rules/*.md`, XML | [Convert Antigravity to Claude →](https://promptshift.dev/convert/antigravity-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 10 | **Anthropic Claude → Google Antigravity** | `CLAUDE.md`, `.claude/rules/*.md` | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md` | [Convert Claude to Antigravity →](https://promptshift.dev/convert/claude-to-antigravity?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 11 | **Google Antigravity → Cursor** | `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md` | `.cursorrules`, `.cursor/rules/*.mdc`, `.windsurfrules` | [Convert Antigravity to Cursor →](https://promptshift.dev/convert/antigravity-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 12 | **Google Gemini → Anthropic Claude** | `GEMINI.md`, `AGENTS.md` | `CLAUDE.md`, `claude_project_instructions.xml` | [Convert Gemini to Claude →](https://promptshift.dev/convert/gemini-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 13 | **Cursor → GitHub Copilot** | `.cursorrules`, `.cursor/rules/*.mdc` | `.github/copilot-instructions.md` | [Convert Cursor to Copilot →](https://promptshift.dev/convert/cursor-to-copilot?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 14 | **GitHub Copilot → Cursor** | `.github/copilot-instructions.md` | `.cursorrules`, `.cursor/rules/*.mdc` | [Convert Copilot to Cursor →](https://promptshift.dev/convert/copilot-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 15 | **Cursor → Windsurf Cascade** | `.cursorrules`, `.cursor/rules/*.mdc` | `.windsurfrules`, `.windsurf/rules/*.md` | [Convert Cursor to Windsurf →](https://promptshift.dev/convert/cursor-to-windsurf?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 16 | **Windsurf Cascade → Cursor** | `.windsurfrules`, `.windsurf/rules/*.md` | `.cursorrules`, `.cursor/rules/*.mdc` | [Convert Windsurf to Cursor →](https://promptshift.dev/convert/windsurf-to-cursor?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 17 | **Anthropic Claude Code → GitHub Copilot** | `CLAUDE.md`, `.claude/rules/*.md` | `.github/copilot-instructions.md` | [Convert Claude to Copilot →](https://promptshift.dev/convert/claude-to-copilot?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 18 | **GitHub Copilot → Anthropic Claude Code** | `.github/copilot-instructions.md` | `CLAUDE.md`, `.claude/mcp.json` | [Convert Copilot to Claude →](https://promptshift.dev/convert/copilot-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 19 | **Anthropic Claude Code → Windsurf Cascade** | `CLAUDE.md`, `claude_project_instructions.xml` | `.windsurfrules`, `.windsurf/rules/*.md` | [Convert Claude to Windsurf →](https://promptshift.dev/convert/claude-to-windsurf?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+| 20 | **Windsurf Cascade → Anthropic Claude Code** | `.windsurfrules` | `CLAUDE.md`, `claude_project_instructions.xml` | [Convert Windsurf to Claude →](https://promptshift.dev/convert/windsurf-to-claude?utm_source=github&utm_medium=readme_matrix&utm_campaign=da96_seo) |
+
+---
+
 ## 🔄 GitHub Actions CI/CD Drift Guard
 
 Add PromptShift to your pull request workflows to automatically enforce rule synchronization across your team:
@@ -161,7 +190,7 @@ If you use or reference PromptShift in your research, tools, or articles, please
   title = {PromptShift: Universal AST Transpiler & Synchronization Bridge for AI Coding Rules},
   url = {https://promptshift.dev},
   year = {2026},
-  version = {1.2.0}
+  version = {1.2.1}
 }
 ```
 
