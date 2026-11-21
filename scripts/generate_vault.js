@@ -7,19 +7,19 @@ async function buildVault() {
 
   zip.file(
     'README.md',
-    `# PromptShift Master Rules & AI Agent Prompts Vault (v1.0 Production)
+    `# PromptShift 50+ Master AI Coding Rules & Prompts Vault (v2.0 Production)
 Copyright (c) 2026 PromptShift (https://promptshift.dev)
 
-Ce pack contient 50+ règles d'or et directives expertes de production pour :
+This production vault delivers 50+ battle-tested AI coding directives and modular rules ready for:
 - Cursor IDE (.cursorrules & .cursor/rules/*.mdc)
-- Anthropic Claude Code & Projects (CLAUDE.md)
+- Anthropic Claude Code & Projects (CLAUDE.md & XML)
 - GitHub Copilot (.github/copilot-instructions.md)
 - Windsurf Cascade (.windsurfrules)
 - Google Gemini CLI & Antigravity (GEMINI.md, AGENTS.md)
 
-## Installation Rapide :
-1. Copiez les fichiers souhaités dans votre dépôt.
-2. Synchronisez automatiquement vos règles avec le CLI PromptShift :
+## Quick Start:
+1. Copy the desired rule files into your repository root or .cursor/rules/ folder.
+2. Synchronize your rules across all AI editors using the PromptShift CLI:
    \`\`\`bash
    npx promptshift --watch
    \`\`\`
@@ -35,6 +35,7 @@ globs: "app/**/*.{ts,tsx},components/**/*.{ts,tsx}"
 # Next.js 15 & React 19 Rules
 - Default to React Server Components (RSC) unless interactivity or state is explicitly required.
 - Mark interactive components with 'use client' at the very top line.
+- Always await dynamic route params, searchParams, cookies(), and headers() in Next.js 15.
 - Use async Server Actions with input validation (zod) for all mutations.
 - Prefer dynamic rendering with proper cache tags: revalidateTag() and revalidatePath().
 - Never import server-only modules in client bundles.
@@ -52,17 +53,18 @@ globs: "**/*.{tsx,jsx,css}"
 - Strictly adhere to accessible contrast ratios (WCAG AAA for text, AA for UI controls).
 - Prefer semantic utility classes over arbitrary bracket values when available.
 - Design responsive layouts mobile-first (base styles = mobile, sm:, md:, lg:, xl: for desktop).
+- Include visible focus-visible ring states on every interactive element.
 `
   );
 
   zip.file(
     '01-frameworks/python-fastapi-clean-arch.md',
     `# Python FastAPI & Pydantic v2 Production Directives
-- Use strict Pydantic v2 schemas for all request payloads and response models.
+- Use strict Pydantic v2 schemas (ConfigDict(extra='forbid')) for all request payloads and response models.
 - Implement dependency injection via FastAPI Depends() for database sessions, auth, and clients.
-- Use asynchronous route handlers (async def) for non-blocking I/O operations.
-- Handle exceptions with custom HTTPException classes and global exception handlers.
-- Enforce strict typing with mypy and type annotations on every function signature.
+- Use asynchronous route handlers (async def) with non-blocking drivers (httpx, asyncpg).
+- Handle exceptions with custom HTTPException classes and RFC 7807 Problem Details handlers.
+- Enforce strict typing with mypy/ruff and type annotations on every function signature.
 `
   );
 
@@ -73,6 +75,7 @@ globs: "**/*.{tsx,jsx,css}"
 - Use thiserror for domain errors and anyhow for application entry points.
 - Structure concurrency around tokio::spawn and tokio::select! with cancellation safety.
 - Keep lock guard scopes as short as possible; never hold a Mutex across an .await point.
+- Enforce cargo clippy -- -D warnings on all crates.
 `
   );
 
@@ -85,7 +88,7 @@ globs: "**/*.{ts,tsx}"
 # TypeScript Strictness Policy
 - 'any' is strictly prohibited. Use 'unknown' with type narrowing or generic parameters.
 - Enable noImplicitAny, strictNullChecks, and exactOptionalPropertyTypes in tsconfig.
-- Use branded types for domain identifiers.
+- Use branded types for domain identifiers (UserId, OrderId, TenantId).
 - Prefer Discriminated Unions for state management and polymorphic event handlers.
 `
   );
@@ -94,9 +97,23 @@ globs: "**/*.{ts,tsx}"
     '01-frameworks/supabase-postgres-rls.md',
     `# Supabase & PostgreSQL Security Architecture
 - Row Level Security (RLS) MUST be enabled on EVERY table without exception.
-- Write explicit policies for SELECT, INSERT, UPDATE, and DELETE targeting auth.uid().
+- Write explicit policies for SELECT, INSERT, UPDATE, and DELETE targeting (select auth.uid()).
 - Never bypass RLS in client-side code; use the service_role key only in secure serverless backend functions.
-- Add database indexes on foreign keys, tenant IDs, and filtered columns in RLS policies.
+- Add B-Tree database indexes on foreign keys, tenant IDs, and filtered columns in RLS policies.
+`
+  );
+
+  zip.file(
+    '01-frameworks/node-express-prisma-orm.mdc',
+    `---
+description: Node.js, Express/API Routes & Prisma ORM Transaction Safety
+globs: "prisma/schema.prisma,src/**/*.{ts,js}"
+---
+# Node.js & Prisma ORM Directives
+- Use a singleton PrismaClient instance across hot reloads to prevent connection pool exhaustion.
+- Always specify explicit select projections on user and billing tables so sensitive hashes are never returned.
+- Wrap multi-table mutations inside prisma.$transaction() with idempotency keys.
+- Validate all incoming request bodies, params, and query strings with Zod schemas.
 `
   );
 
@@ -105,8 +122,21 @@ globs: "**/*.{ts,tsx}"
     `# Docker Production Hardening
 - Use multi-stage builds to minimize image surface: builder stage -> production runner.
 - Never run containers as root; define and use an unprivileged user (USER node / USER nonroot).
-- Use minimal base images (distroless or alpine).
+- Use minimal base images (distroless or alpine) and pin image digests.
 - Never pass sensitive build secrets via ARG or ENV; use BuildKit '--mount=type=secret'.
+`
+  );
+
+  zip.file(
+    '01-frameworks/playwright-vitest-testing.mdc',
+    `---
+description: Playwright E2E & Vitest Unit Verification Standards
+globs: "tests/**/*.{ts,tsx},**/*.{test,spec}.{ts,tsx}"
+---
+# Playwright & Vitest QA Rules
+- Use accessible user-facing locators (getByRole, getByLabel) instead of brittle CSS selectors.
+- Never use hardcoded sleep timers (waitForTimeout); rely on web-first auto-retrying assertions.
+- Cover happy paths plus 401/403/422/429 error boundaries in every API test suite.
 `
   );
 
@@ -120,7 +150,7 @@ globs: "**/*"
 - NEVER hardcode API keys, database credentials, JWT secrets, or private tokens in source code.
 - Prevent committing .env, .env.local, .pem, .key, and service-account.json files.
 - Sanitize logs: never log full authorization headers, card numbers, or passwords.
-- Detect and flag OpenAI sk-*, Anthropic sk-ant-*, AWS AKIA*, and GitHub ghp_* tokens immediately.
+- Detect and flag OpenAI sk-*, Anthropic sk-ant-*, AWS AKIA*, Stripe sk_live_*, and GitHub ghp_* tokens immediately.
 `
   );
 
@@ -134,6 +164,7 @@ globs: "**/api/**/*.{ts,js,py}"
 - Never rely on client-supplied user IDs or tenant IDs in request bodies or query params.
 - Always derive the authenticated actor from the cryptographically verified session token.
 - Verify ownership and access permissions before returning or updating any database resource.
+- Fail closed (deny by default) when session or signature verification encounters an error.
 `
   );
 
@@ -173,9 +204,9 @@ globs: "**/*"
   zip.file(
     '04-ready-to-use-claude/CLAUDE.md',
     `# PromptShift Universal CLAUDE.md Master Rules
-- Stack: Next.js 15 App Router, TypeScript Strict, TailwindCSS.
-- Workflow: Run 'npm test' or equivalent before finishing turn.
-- Security: Zero-retention RAM architecture, IDOR checks, CSRF protection.
+- Stack: Next.js 15 App Router, TypeScript Strict, TailwindCSS v4.
+- Workflow: Run 'npm test' and 'npm run build' before finishing turn.
+- Security: Zero-retention RAM architecture, IDOR checks, fail-closed verification.
 - Monetization: Polar.sh MoR integration for frictionless Apple Pay / Google Pay.
 - CLI Sync: Use 'npx promptshift --watch' for bidirectional rules sync.
 `

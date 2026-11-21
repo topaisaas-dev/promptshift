@@ -11,12 +11,20 @@ import {
   Layers,
   Sparkles,
   Lock,
-  ShieldCheck,
   X,
+  GitBranch,
+  Check,
 } from 'lucide-react';
 import { ClientPruner, ScannedFile } from '@/lib/pruner';
 import { CanonicalProject } from '@/lib/converter/capsSchema';
 import { SecurityGuards } from '@/lib/converter/securityGuards';
+import {
+  STACK_CHIP_OPTIONS,
+  DEFAULT_SELECTED_STACK_CHIP_IDS,
+  GeneratedStackSuite,
+  synthesizeStackSuite,
+  importGitHubRepoSuite,
+} from '@/lib/converter/stackSuiteGenerator';
 import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManager';
 import { MonetizationManager } from '@/lib/config/monetizationConfig';
 import { ClientVault } from '@/lib/storage/clientVault';
@@ -80,6 +88,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   const [currency, setCurrency] = useState<SupportedCurrency>(() =>
     typeof window !== 'undefined' ? CurrencyManager.getActiveCurrency() : 'USD'
   );
+
+  // 1-Click Stack Rules Builder & GitHub Repo Importer State
+  const [selectedChipIds, setSelectedChipIds] = useState<string[]>(DEFAULT_SELECTED_STACK_CHIP_IDS);
+  const [githubRepoInput, setGithubRepoInput] = useState<string>('');
+  const [isImportingGithub, setIsImportingGithub] = useState<boolean>(false);
+  const [generatedSuite, setGeneratedSuite] = useState<GeneratedStackSuite | null>(null);
+
   const isFreeBeta = MonetizationManager.isFreeBeta();
   const freeLimit = MonetizationManager.getFreeLimit();
 
@@ -184,9 +199,106 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     onProjectReady(canonical, targetPlatform, isSlicedStarter, originalTotalFiles, fullProject);
   };
 
+  // Dispatch synthesized 8-file suite (2 files free preview + 8 files staged in fullProject for $1.99 unlock)
+  const commitGeneratedSuiteToRam = (suite: GeneratedStackSuite) => {
+    setGeneratedSuite(suite);
+    setOverlimitState(null);
+    setErrorMessage(null);
+
+    const activePlanNow = ClientVault.getActivePlan();
+    const userHasUnlockedPass =
+      ['single', 'pro', 'team', 'vip'].includes(activePlanNow) || isFreeBeta;
+
+    const totalBytes =
+      (suite.fullProject.persona?.raw_system_prompt?.length || 0) +
+      suite.fullProject.rules.reduce((acc, r) => acc + r.content.length, 0) +
+      suite.fullProject.knowledge_base.reduce((acc, k) => acc + k.size_bytes, 0);
+
+    setPruningStats({
+      rawBytes: totalBytes,
+      prunedBytes: totalBytes,
+      fileCount: suite.totalFiles,
+      secretsDetected: 0,
+    });
+
+    AnalyticsTracker.trackProjectUpload({
+      projectTitle: suite.fullProject.metadata.title,
+      fileCount: suite.totalFiles,
+      sizeBytes: totalBytes,
+      sourcePlatform: suite.fullProject.metadata.source_platform,
+      pairSlug,
+    });
+
+    if (userHasUnlockedPass) {
+      onProjectReady(
+        suite.fullProject,
+        targetPlatform,
+        false,
+        suite.totalFiles,
+        suite.fullProject
+      );
+      return;
+    }
+
+    AnalyticsTracker.trackPaywallHit({
+      projectTitle: suite.fullProject.metadata.title,
+      fileCount: suite.totalFiles,
+      sourcePlatform: suite.fullProject.metadata.source_platform,
+      targetPlatform,
+      pairSlug,
+    });
+
+    // Slice 2 files for free preview (`isSlicedStarter: true`), stage all 8 files in `fullProject`
+    const sliced = suite.slicedProject;
+    const fullProject = suite.fullProject;
+    onProjectReady(sliced, targetPlatform, true, suite.totalFiles, fullProject);
+  };
+
+  const handleToggleChip = (chipId: string) => {
+    setSelectedChipIds((prev) => {
+      if (prev.includes(chipId)) {
+        if (prev.length === 1) return prev; // Keep at least 1 stack chip active
+        return prev.filter((id) => id !== chipId);
+      }
+      return [...prev, chipId];
+    });
+  };
+
+  const handleGenerateStackSuite = () => {
+    const suite = synthesizeStackSuite(selectedChipIds, { freeLimit });
+    commitGeneratedSuiteToRam(suite);
+  };
+
+  const handleImportGithubRepo = async (overrideInput?: string) => {
+    const raw = (overrideInput ?? githubRepoInput).trim();
+    if (!raw) {
+      setErrorMessage('Enter a public GitHub repo (e.g. vercel/next.js or https://github.com/owner/repo).');
+      return;
+    }
+    setIsImportingGithub(true);
+    setErrorMessage(null);
+    try {
+      const suite = await importGitHubRepoSuite(raw);
+      commitGeneratedSuiteToRam(suite);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Unable to parse GitHub repository URL.');
+    } finally {
+      setIsImportingGithub(false);
+    }
+  };
+
+  const handleUnlockGeneratedSuite = () => {
+    const suite = generatedSuite || synthesizeStackSuite(selectedChipIds, { freeLimit });
+    if (!generatedSuite) {
+      commitGeneratedSuiteToRam(suite);
+    }
+    if (onRequirePaywallUnlock) {
+      onRequirePaywallUnlock(suite.fullProject, targetPlatform, suite.totalFiles, 'single');
+    }
+  };
+
   const handleModeSwitch = (mode: 'starter' | 'pro') => {
     if (mode === 'pro' && !hasPaidLicense && !isFreeBeta) {
-      // Strictly gate Pro mode behind Polar checkout instead of bypassing paywall
       if (overlimitState && onRequirePaywallUnlock) {
         const fullProj = buildCanonicalProject(
           overlimitState.projectName,
@@ -194,14 +306,14 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           overlimitState.rulesList,
           overlimitState.knowledgeBase
         );
-        onRequirePaywallUnlock(fullProj, targetPlatform, overlimitState.totalCount, 'pro');
+        onRequirePaywallUnlock(fullProj, targetPlatform, overlimitState.totalCount, 'single');
       } else if (onRequirePaywallUnlock) {
-        onRequirePaywallUnlock(
-          buildCanonicalProject('Custom Workspace', '', [], []),
-          targetPlatform,
-          0,
-          'pro'
-        );
+        // Stage an 8-file bespoke suite from the user's selected stack chips so Polar checkout always unlocks a real 8-file bundle
+        const suite = generatedSuite || synthesizeStackSuite(selectedChipIds, { freeLimit });
+        if (!generatedSuite) {
+          commitGeneratedSuiteToRam(suite);
+        }
+        onRequirePaywallUnlock(suite.fullProject, targetPlatform, suite.totalFiles, 'single');
       }
       return;
     }
@@ -225,6 +337,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     setIsProcessing(true);
     setErrorMessage(null);
     setOverlimitState(null);
+    setGeneratedSuite(null);
 
     let rawTotalBytes = 0;
     let prunedTotalBytes = 0;
@@ -528,14 +641,206 @@ export const Dropzone: React.FC<DropzoneProps> = ({
               <span className="text-[11px] text-textMuted">
                 {hasPaidLicense
                   ? 'Unlimited files • All 4 AI ecosystems unlocked'
-                  : `Unlimited files • ${singlePrice.formatted} 1-click Polar Pass`}
+                  : `All 8 stack files + 4 IDEs • ${singlePrice.formatted} 1-click Polar Pass`}
               </span>
             </div>
           </div>
         </button>
       </div>
 
-      {/* Interactive Overlimit Pay-to-Unlock Dialog when > 2 files dropped */}
+      {/* 3 FRICTIONLESS WAYS TO STAGE AN 8-FILE REPOSITORY IN RAM */}
+      <div className="w-full p-5 sm:p-6 rounded-3xl bg-slate-900/90 border border-cyan-500/30 shadow-xl flex flex-col gap-5 text-left">
+        {/* Path A: ⚡ 1-Click Stack Rules Builder (Interactive Chips) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-black text-[11px] uppercase tracking-wider">
+                ⚡ Way 1 • No Local .ZIP Needed
+              </span>
+              <h3 className="text-sm sm:text-base font-black text-white">
+                1-Click Stack Rules Builder (Mobile &amp; Desktop Instant Generator)
+              </h3>
+            </div>
+            <span className="text-[11px] text-emerald-400 font-semibold">
+              {selectedChipIds.length} stack module{selectedChipIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Select your tech stack modules"
+            className="flex flex-wrap gap-2"
+          >
+            {STACK_CHIP_OPTIONS.map((chip) => {
+              const isSelected = selectedChipIds.includes(chip.id);
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => handleToggleChip(chip.id)}
+                  aria-pressed={isSelected}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    isSelected
+                      ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/60 shadow-sm'
+                      : 'bg-slate-950/70 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] ${
+                      isSelected
+                        ? 'bg-cyan-400 text-slate-950 font-black'
+                        : 'bg-slate-800 text-transparent'
+                    }`}
+                  >
+                    ✓
+                  </span>
+                  <span>{chip.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+            <p className="text-[11px] text-slate-400">
+              Synthesizes an <strong>8-file production AI rules suite</strong> in RAM (previews 2 files free, stages all 8 for 1-click export).
+            </p>
+            <button
+              type="button"
+              onClick={handleGenerateStackSuite}
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition-all hover:scale-[1.01] cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <Sparkles className="w-4 h-4 fill-current" />
+              <span>Generate Custom 8-File AI Rules Suite</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Path B: 🐙 GitHub Repo URL Importer (owner/repo) */}
+        <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30 font-black text-[11px] uppercase tracking-wider">
+                🐙 Way 2 • Public GitHub Repo
+              </span>
+              <label htmlFor="github-repo-importer-input" className="text-xs sm:text-sm font-bold text-white">
+                Import from GitHub URL or <code className="text-cyan-300">owner/repo</code>
+              </label>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <span>Quick test:</span>
+              {['vercel/next.js', 'fastapi/fastapi', 'supabase/supabase'].map((sampleRepo) => (
+                <button
+                  key={sampleRepo}
+                  type="button"
+                  onClick={() => {
+                    setGithubRepoInput(sampleRepo);
+                    handleImportGithubRepo(sampleRepo);
+                  }}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-mono text-[10px] border border-slate-700 cursor-pointer"
+                >
+                  {sampleRepo}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative flex-1">
+              <GitBranch className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="github-repo-importer-input"
+                type="text"
+                value={githubRepoInput}
+                onChange={(e) => setGithubRepoInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleImportGithubRepo();
+                  }
+                }}
+                placeholder="owner/repo or https://github.com/owner/repo (e.g. vercel/next.js)"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs text-white placeholder-slate-500 font-mono"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => handleImportGithubRepo()}
+              disabled={isImportingGithub}
+              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>
+                {isImportingGithub
+                  ? 'Detecting Stack & Building 8 Files...'
+                  : 'Import & Generate 8-File Suite'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* High-Converting 2-of-8 Unlocked Preview & $1.99 Unlock Banner */}
+        {generatedSuite && !hasPaidLicense && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-950 to-cyan-950/40 border-2 border-amber-400/60 flex flex-col gap-3.5 shadow-lg animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-black text-white leading-snug">
+                    2 of 8 bespoke stack rule files unlocked in preview — Unlock all 8 files + 4-in-1 IDE bundle (Cursor .mdc, CLAUDE.md, Copilot, Windsurf) + 50+ Master Rules Vault for {singlePrice.formatted}
+                  </p>
+                  <p className="text-[11px] text-slate-300 mt-1">
+                    Staged in RAM for <strong className="text-cyan-300">{generatedSuite.fullProject.metadata.title}</strong> ({generatedSuite.sourceLabel})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleUnlockGeneratedSuite}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400 hover:brightness-105 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
+              >
+                <Sparkles className="w-4 h-4 fill-current" />
+                <span>Unlock All 8 Files ({singlePrice.formatted}) →</span>
+              </button>
+            </div>
+
+            {/* Concrete File List Preview: 2 Unlocked vs 6 Locked */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+              <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30">
+                <div className="font-sans font-bold text-emerald-300 mb-1.5 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Unlocked in Free Preview (2 files):</span>
+                </div>
+                <ul className="space-y-1 text-emerald-200/90">
+                  {generatedSuite.unlockedPreviewFileLabels.map((file, idx) => (
+                    <li key={idx} className="truncate">
+                      ✓ {file}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/30">
+                <div className="font-sans font-bold text-amber-300 mb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Staged in RAM — Unlocks with {singlePrice.formatted} Pass (6 files + 4 IDEs):</span>
+                </div>
+                <ul className="space-y-1 text-slate-300">
+                  {generatedSuite.lockedFileLabels.map((file, idx) => (
+                    <li key={idx} className="truncate">
+                      🔒 {file}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Interactive Overlimit Pay-to-Unlock Dialog when > 2 local files dropped */}
       {overlimitState ? (
         <div className="w-full p-7 sm:p-9 rounded-3xl bg-slate-900/95 border-2 border-cyan-500/50 shadow-2xl flex flex-col gap-6 text-left animate-fadeIn backdrop-blur-md">
           <div className="flex items-start justify-between gap-4">
@@ -646,7 +951,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           </div>
         </div>
       ) : (
-        /* Main Drag & Drop Zone */
+        /* Path C: 📁 Drop Local Files / Folder / .ZIP */
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -659,18 +964,22 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             const files = Array.from(e.dataTransfer.files);
             if (files.length > 0) processFileList(files);
           }}
-          className={`w-full p-8 sm:p-10 rounded-3xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-4 text-center relative overflow-hidden bg-slate-900/60 backdrop-blur-sm ${
+          className={`w-full p-7 sm:p-9 rounded-3xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-4 text-center relative overflow-hidden bg-slate-900/60 backdrop-blur-sm ${
             isDragging
               ? 'border-cyan-400 bg-cyan-500/10 shadow-xl scale-[1.01]'
               : 'border-slate-700 hover:border-cyan-500/50'
           }`}
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <UploadCloud className="w-8 h-8" />
+          <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-black text-[11px] uppercase tracking-wider">
+            📁 Way 3 • Drop Local Files, Folder or .ZIP
+          </span>
+
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <UploadCloud className="w-7 h-7" />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
               Drop your repo folder, <code className="text-cyan-300">.cursorrules</code>,{' '}
               <code className="text-cyan-300">CLAUDE.md</code>, or <code className="text-cyan-300">.zip</code>
             </h3>

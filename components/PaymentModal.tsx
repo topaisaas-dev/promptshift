@@ -14,12 +14,19 @@ import {
   Mail,
   Share2,
   UploadCloud,
+  FileCode2,
+  Layers,
 } from 'lucide-react';
 import { ClientVault, VaultInvoice } from '@/lib/storage/clientVault';
 import { InvoiceGenerator } from '@/lib/invoices/invoiceGenerator';
 import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManager';
 import { AnalyticsTracker } from '@/lib/analytics/analyticsTracker';
 import { MonetizationManager } from '@/lib/config/monetizationConfig';
+import {
+  DEFAULT_SELECTED_STACK_CHIP_IDS,
+  getCanonicalProjectFileLabels,
+  synthesizeStackSuite,
+} from '@/lib/converter/stackSuiteGenerator';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -30,9 +37,13 @@ interface PaymentModalProps {
   initialIsPaid?: boolean;
   sourceChannel?: string;
   conversionPair?: string;
+  stagedFileCount?: number;
+  stagedFileNames?: string[];
   onBeforeExternalRedirect?: (plan: 'single' | 'pro' | 'team') => void;
   onOpenPortal?: () => void;
 }
+
+const DEFAULT_FALLBACK_SUITE = synthesizeStackSuite(DEFAULT_SELECTED_STACK_CHIP_IDS);
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
@@ -43,6 +54,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   initialIsPaid = false,
   sourceChannel = 'web',
   conversionPair,
+  stagedFileCount,
+  stagedFileNames,
   onBeforeExternalRedirect,
   onOpenPortal,
 }) => {
@@ -59,6 +72,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [emailError, setEmailError] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [includeOrderBump, setIncludeOrderBump] = useState(true);
+  const [resolvedFileList, setResolvedFileList] = useState<string[]>(
+    stagedFileNames && stagedFileNames.length > 0
+      ? stagedFileNames
+      : DEFAULT_FALLBACK_SUITE.allFileLabels
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,6 +104,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setCurrency(CurrencyManager.getActiveCurrency());
       setEmailError('');
 
+      // Resolve concrete staged file names from props or sessionStorage pending checkout project
+      if (stagedFileNames && stagedFileNames.length > 0) {
+        setResolvedFileList(stagedFileNames);
+      } else if (typeof window !== 'undefined') {
+        try {
+          const rawPending = sessionStorage.getItem('promptshift_pending_checkout_state');
+          if (rawPending) {
+            const parsed = JSON.parse(rawPending);
+            if (parsed?.project) {
+              const extracted = getCanonicalProjectFileLabels(parsed.project);
+              if (extracted.length > 0) {
+                setResolvedFileList(extracted);
+              }
+            }
+          }
+        } catch {
+          setResolvedFileList(DEFAULT_FALLBACK_SUITE.allFileLabels);
+        }
+      }
+
       const savedCust = ClientVault.getCustomerInfo();
       if (
         savedCust.email &&
@@ -97,7 +135,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         setCustomerEmail('');
       }
     }
-  }, [isOpen, initialPlan, initialIsPaid, isFreeBeta]);
+  }, [isOpen, initialPlan, initialIsPaid, isFreeBeta, stagedFileNames]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -117,6 +155,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail);
   const displayPrice = isFreeBeta ? CurrencyManager.formatZero(currency) : tierPriceInfo.formattedTotal;
   const bumpPriceFormatted = CurrencyManager.getBonusValueFormatted(currency);
+
+  const effectiveFileCount = Math.max(
+    stagedFileCount || resolvedFileList.length || 8,
+    resolvedFileList.length
+  );
+  const freePreviewLimit = MonetizationManager.getFreeLimit();
+  const lockedCount = Math.max(0, effectiveFileCount - freePreviewLimit);
+  const effectiveProjectLabel =
+    projectName && projectName !== 'Custom Workspace' && projectName !== 'custom_workspace'
+      ? projectName
+      : 'nextjs15_react19_ts_ai_suite';
 
   const handlePolarCheckout = async () => {
     // Email is OPTIONAL for 1-Click Express Polar Checkout (Apple Pay / Google Pay / Link).
@@ -155,7 +204,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         body: JSON.stringify({
           plan: selectedPlan,
           customerEmail: isEmailValid ? trimmedEmail : undefined,
-          projectName: projectName || 'Universal 4-in-1 Suite',
+          projectName: effectiveProjectLabel,
           sourceChannel: effectiveChannel,
           conversionPair,
           includeOrderBump,
@@ -185,7 +234,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (!zipBase64) return;
     const link = document.createElement('a');
     link.href = `data:application/zip;base64,${zipBase64}`;
-    const safeName = (projectName || 'promptshift_universal_suite')
+    const safeName = (effectiveProjectLabel || 'promptshift_universal_suite')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     link.download = `${safeName}_4in1_bundle.zip`;
@@ -204,7 +253,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       }}
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
     >
-      <div className="w-full max-w-lg max-h-[92vh] bg-cardBg border border-borderColor rounded-3xl p-6 sm:p-7 shadow-2xl relative flex flex-col justify-between gap-4 overflow-y-auto">
+      <div className="w-full max-w-lg max-h-[92vh] bg-cardBg border border-borderColor rounded-3xl p-5 sm:p-6 shadow-2xl relative flex flex-col justify-between gap-3.5 overflow-y-auto">
         <button
           onClick={onClose}
           aria-label="Close payment modal"
@@ -216,19 +265,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {/* Modal Header */}
         <div className="flex flex-col gap-1 text-center items-center flex-shrink-0">
           <div
-            className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyanGlow/30 flex items-center justify-center text-cyanGlow mb-1 flex-shrink-0"
+            className="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyanGlow/30 flex items-center justify-center text-cyanGlow mb-0.5 flex-shrink-0"
             aria-hidden="true"
           >
-            {isPaid ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : <Lock className="w-6 h-6" />}
+            {isPaid ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : <Lock className="w-5 h-5" />}
           </div>
-          <h2 id="payment-modal-title" className="text-xl font-bold text-white tracking-tight">
+          <h2 id="payment-modal-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
             {isPaid
               ? 'License Activated & Bundle Ready!'
               : selectedPlan === 'team'
               ? 'Unlock Team & Agency CI/CD Pass'
               : selectedPlan === 'pro'
               ? 'Unlock Pro Developer Unlimited Pass'
-              : `Unlock Universal 4-in-1 Suite (${singlePriceInfo.formatted})`}
+              : `Unlock All ${effectiveFileCount} Files + 4-in-1 Suite (${singlePriceInfo.formatted})`}
           </h2>
           <p className="text-xs text-textMuted max-w-sm text-center">
             {isPaid
@@ -237,13 +286,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               ? '5 developer seats, automated GitHub & GitLab CI/CD parity guard, SOC-2 DPA, and unlimited repos.'
               : selectedPlan === 'pro'
               ? 'Unlimited multi-file repositories, personal CLI & MCP license key, and full In-RAM secret shield.'
-              : 'Instant one-time pass. Exports all your rules across Cursor, Claude Code, OpenAI & Gemini with zero subscription.'}
+              : `Instant one-time pass for "${effectiveProjectLabel}". Unlocks all ${effectiveFileCount} staged files across Cursor, Claude Code, Copilot & Windsurf.`}
           </p>
         </div>
 
         {!isPaid ? (
-          <div className="flex flex-col gap-4">
-            {/* Plan Selector Tabs */}
+          <div className="flex flex-col gap-3.5">
+            {/* Plan Selector Tabs ($1.99 Single Pass is Default) */}
             <div
               role="tablist"
               aria-label="Commercial plan options"
@@ -296,12 +345,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             {/* Selected Plan Summary Card */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950/80 border border-borderColor">
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/80 border border-borderColor">
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-white">
                     {selectedPlan === 'single'
-                      ? 'Universal 4-in-1 Repo Pass'
+                      ? `Universal 4-in-1 Repo Pass (${effectiveFileCount} Files)`
                       : selectedPlan === 'pro'
                       ? 'Pro Developer Unlimited'
                       : 'Team & Agency CI/CD Pass'}
@@ -309,16 +358,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   {selectedPlan === 'pro' && <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
                   {selectedPlan === 'team' && <Building2 className="w-3.5 h-3.5 text-purple-400" />}
                 </div>
-                <p className="text-[11px] text-textMuted mt-0.5 max-w-[270px]">
+                <p className="text-[11px] text-textMuted mt-0.5 max-w-[280px]">
                   {selectedPlan === 'single'
-                    ? `Unlocks "${projectName || 'your repository'}" for Cursor + Claude + OpenAI + Gemini. Instant auto-download on return.`
+                    ? `Unlocks all ${effectiveFileCount} staged files for "${effectiveProjectLabel}" + 4-in-1 IDE bundle. Auto-downloads on return.`
                     : selectedPlan === 'pro'
                     ? 'Unlimited multi-file exports • CLI & MCP License Key • Cancel anytime'
                     : '5 seats included • GitHub Actions auto-sync • SOC-2 DPA'}
                 </p>
               </div>
 
-              <div className="text-right flex-shrink-0 min-w-[90px]">
+              <div className="text-right flex-shrink-0 min-w-[85px]">
                 <span className="text-2xl font-black text-emeraldGlow leading-none block">
                   {displayPrice}
                 </span>
@@ -328,8 +377,57 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
+            {/* Concrete Staged Deliverables & Exact Locked File List Preview */}
+            <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-cyan-500/40 flex flex-col gap-2.5 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-black text-cyan-300">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>
+                    Staged in RAM for <code className="text-white">{effectiveProjectLabel}</code> ({effectiveFileCount} Files)
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 whitespace-nowrap">
+                  {lockedCount > 0 ? `${freePreviewLimit} Previewed • ${lockedCount} Locked` : 'Ready in RAM'}
+                </span>
+              </div>
+
+              {/* Exact File Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[128px] overflow-y-auto pr-1 text-[11px] font-mono">
+                {resolvedFileList.map((fileLabel, idx) => {
+                  const isPreviewUnlocked = idx < freePreviewLimit;
+                  return (
+                    <div
+                      key={idx}
+                      className={`px-2 py-1 rounded-lg border flex items-center gap-1.5 truncate ${
+                        isPreviewUnlocked
+                          ? 'bg-emerald-950/25 border-emerald-500/30 text-emerald-300'
+                          : 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                      }`}
+                      title={fileLabel}
+                    >
+                      <FileCode2 className="w-3 h-3 shrink-0" />
+                      <span className="truncate">
+                        {isPreviewUnlocked ? '✓ ' : '🔒 '}
+                        {fileLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 4-in-1 IDE Formats + Master Vault Deliverable Summary */}
+              <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-slate-300">
+                <span className="font-semibold text-emerald-400">
+                  ✓ 4-in-1 ZIP: Cursor (.mdc) + CLAUDE.md + Copilot + Windsurf
+                </span>
+                <span className="font-semibold text-amber-300">
+                  + 50+ Master Rules Vault (.ZIP)
+                </span>
+              </div>
+            </div>
+
             {/* Included Bonus Vault ($4.99 Value — Free with Pass): 50+ Master Rules & Prompts Vault */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border border-amber-500/50 flex items-start gap-3 transition-all hover:border-amber-400">
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border border-amber-500/50 flex items-start gap-2.5 transition-all hover:border-amber-400">
               <input
                 id="order-bump-checkbox"
                 type="checkbox"
@@ -352,7 +450,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  Included at $0.00 extra: instant direct download of the 50+ battle-tested production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; Security Guardrails) ready-to-use for Cursor, Claude Code, Copilot &amp; Windsurf.
+                  Included at $0.00 extra: instant direct download of the 50+ battle-tested production rules vault (Next.js 15, Tailwind v4, Python FastAPI, Rust, Supabase RLS, Docker &amp; OWASP Guardrails).
                 </p>
               </label>
             </div>
@@ -373,7 +471,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   {isProcessing
                     ? 'Redirecting to Polar Express Checkout...'
                     : selectedPlan === 'single'
-                    ? `1-Click Express Checkout (${displayPrice}) →`
+                    ? `Unlock All ${effectiveFileCount} Files + 4-in-1 Suite (${displayPrice}) →`
                     : `Start Instant Subscription (${displayPrice}/mo) →`}
                 </span>
               </button>
@@ -517,7 +615,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-center gap-2 text-[11px] text-textMuted border-t border-borderColor pt-3 flex-shrink-0">
+        <div className="flex items-center justify-center gap-2 text-[11px] text-textMuted border-t border-borderColor pt-2.5 flex-shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
           <span>100% In-RAM Execution • Zero Server Data Retention</span>
         </div>

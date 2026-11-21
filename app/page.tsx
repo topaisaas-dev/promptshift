@@ -24,6 +24,11 @@ import { CurrencyManager, SupportedCurrency } from '@/lib/currency/currencyManag
 import { AnalyticsTracker } from '@/lib/analytics/analyticsTracker';
 import { Dropzone } from '@/components/Dropzone';
 import { CanonicalProject } from '@/lib/converter/capsSchema';
+import {
+  DEFAULT_SELECTED_STACK_CHIP_IDS,
+  getCanonicalProjectFileLabels,
+  synthesizeStackSuite,
+} from '@/lib/converter/stackSuiteGenerator';
 import { ClientVault } from '@/lib/storage/clientVault';
 import JSZip from 'jszip';
 
@@ -362,7 +367,33 @@ export default function HomePage() {
   const handleOpenCheckout = (plan: 'single' | 'pro' | 'team') => {
     setPaymentPlan(plan);
     setIsModalPaidCelebration(false);
-    persistPendingStateForPolar(plan);
+    if (!fullLockedProject && !customProject) {
+      const defaultSuite = synthesizeStackSuite(DEFAULT_SELECTED_STACK_CHIP_IDS);
+      setCustomProject(defaultSuite.slicedProject);
+      setFullLockedProject(defaultSuite.fullProject);
+      setIsCustomMode(true);
+      setIsSlicedStarter(!hasPaidLicense);
+      setOriginalFileCount(defaultSuite.totalFiles);
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem(
+            PENDING_CHECKOUT_STORAGE_KEY,
+            JSON.stringify({
+              project: defaultSuite.fullProject,
+              wasCustom: true,
+              target: activeTarget,
+              pairSlug: activePairSlug,
+              plan,
+              savedAt: Date.now(),
+            })
+          );
+        } catch {
+          // Ignore
+        }
+      }
+    } else {
+      persistPendingStateForPolar(plan);
+    }
     setIsPaymentModalOpen(true);
     AnalyticsTracker.trackCheckout(
       plan,
@@ -491,6 +522,11 @@ export default function HomePage() {
   const activeProjectTitle =
     (fullLockedProject && isSlicedStarter ? fullLockedProject.metadata.title : null) ||
     (isCustomMode && customProject ? customProject.metadata.title : activePreset.project.metadata.title);
+  const projectForDeliverables =
+    fullLockedProject ||
+    (isCustomMode && customProject ? customProject : activePreset.project);
+  const activeStagedFileNames = getCanonicalProjectFileLabels(projectForDeliverables);
+  const activeStagedFileCount = Math.max(originalFileCount || 0, activeStagedFileNames.length);
 
   const freePriceFormatted = CurrencyManager.formatZero(currency);
   const singlePriceFormatted = CurrencyManager.getTierPrice('single', currency).formatted;
@@ -1225,6 +1261,8 @@ export default function HomePage() {
         initialIsPaid={isModalPaidCelebration}
         sourceChannel={effectiveSourceChannel}
         conversionPair={activePairSlug}
+        stagedFileCount={activeStagedFileCount}
+        stagedFileNames={activeStagedFileNames}
         onBeforeExternalRedirect={persistPendingStateForPolar}
       />
     </div>

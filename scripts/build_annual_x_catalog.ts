@@ -1,11 +1,14 @@
 /**
- * PromptShift X (Twitter) Annual Catalog Builder — v3 "Marketing & CTA" edition
+ * PromptShift X (Twitter) Annual Catalog Builder — v4 "High-Converting Impulse & Deep-Link" edition
  *
  * Tone: simple, direct, commercial English. Every main tweet ends with a clear
  * call-to-action strictly pointing to the reply ("👇 Link in the reply", "Link in the reply 👇").
  * The main tweet never relies on bio links and never contains a URL (keeps full X reach,
- * especially when reposted by @promptshift_dev). The auto-reply carries the offer +
- * https://promptshift.dev.
+ * especially when reposted by @promptshift_dev).
+ *
+ * Every upcoming auto-reply pitches the high-converting impulse hook:
+ * 1-Click Stack/GitHub Rules Generator + free preview + $1.99 one-time pass (includes 50+ Master Rules Vault),
+ * and links directly to the matching /convert/[pair] route (when the post topic matches a pair) or https://promptshift.dev.
  *
  * Posts already broadcast (listed in data/x_posts_history.json) are preserved
  * verbatim at the top of the catalog so the autopilot resumes at the next slot.
@@ -40,6 +43,7 @@ interface Draft {
   category: Category;
   body: string; // main tweet WITHOUT CTA
   leads: string[]; // candidate first lines for the reply
+  pairSlug?: string; // optional /convert/[pair] deep route
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -60,6 +64,24 @@ function getXWeightedLength(text: string): number {
     count += (ch.codePointAt(0) || 0) > 0x10ff ? 2 : 1;
   }
   return count;
+}
+
+/**
+ * Mirrors scripts/x-autopilot.ts injectUtmParams so we guarantee raw string length < 280 even AFTER UTM injection.
+ */
+function previewInjectUtmParams(text: string, postId: string): string {
+  const utmParams = `utm_source=x&utm_medium=social&utm_campaign=devrel_daily&utm_content=${encodeURIComponent(postId)}`;
+  return text.replace(/https:\/\/promptshift\.dev[^\s]*/g, (rawMatch) => {
+    const punctMatch = rawMatch.match(/[.,;:!?)'"\]]+$/);
+    const trailingPunct = punctMatch ? punctMatch[0] : '';
+    const cleanUrl = trailingPunct ? rawMatch.slice(0, -trailingPunct.length) : rawMatch;
+    if (cleanUrl.includes('utm_campaign=')) return rawMatch;
+    const hashIndex = cleanUrl.indexOf('#');
+    const beforeHash = hashIndex >= 0 ? cleanUrl.slice(0, hashIndex) : cleanUrl;
+    const hashPart = hashIndex >= 0 ? cleanUrl.slice(hashIndex) : '';
+    const separator = beforeHash.includes('?') ? '&' : '?';
+    return `${beforeHash}${separator}${utmParams}${hashPart}${trailingPunct}`;
+  });
 }
 
 function mulberry32(seed: number): () => number {
@@ -119,27 +141,32 @@ const CTAS = [
 ];
 
 // ============================================================================
-// REPLY OFFERS (7 = prime) — every reply ends with the site link
+// HIGH-CONVERTING IMPULSE REPLY OFFERS (11 = prime)
+// Every offer pitches: 1-Click Stack/GitHub Generator + Free preview + $1.99 pass (+ 50+ Vault)
 // ============================================================================
 
 const OFFERS = [
-  'Free for up to 2 files. No signup.',
-  'Bigger repo? One-time $1.99 pass.',
-  'Free to try • $1.99 one-time • $5.99/mo unlimited.',
-  'Teams: $19.99/mo with checks on every PR.',
-  'Try it free in your browser. Nothing stored.',
-  'Grade A on the Glama MCP registry. Free to start.',
-  'Pro: unlimited conversions for $5.99/mo.',
+  '⚡ 1-Click Stack/GitHub Builder • 2 files free • 8-file 4-in-1 + 50+ Vault: $1.99',
+  '⚡ 1-Click Stack/GitHub Generator • Free preview • $1.99 pass (+ 50+ Rules Vault)',
+  '⚡ Build from Stack or GitHub URL • 2 files free • $1.99 4-in-1 + 50+ Rules Vault',
+  '⚡ 1-Click Stack & GitHub Rules • Free preview • $1.99 one-time (+ 50+ Vault)',
+  '⚡ Paste GitHub URL or pick stack • 2 files free • $1.99 4-in-1 + 50+ Vault',
+  '⚡ 1-Click 8-File Stack/GitHub Suite • Free preview • Unlock all + 50+ Vault: $1.99',
+  '⚡ Instant Stack/GitHub Builder • 2 files free • $1.99 one-time + 50+ Rules Vault',
+  '⚡ Generate 8 rules from Stack/GitHub • Free preview • $1.99 4-in-1 + 50+ Vault',
+  '⚡ 1-Click Stack/GitHub Importer • 2 files free • $1.99 pass (+ 50+ Rules Vault)',
+  '⚡ No local ZIP needed: Stack/GitHub Builder • Free preview • $1.99 + 50+ Vault',
+  '⚡ 1-Click Stack Chips or GitHub Repo • 2 files free • $1.99 4-in-1 + 50+ Vault',
 ];
 
 const GENERIC_LEADS = [
   'Your AI rules, in every editor.',
   'Write once. Sync everywhere.',
-  'Free to try. No signup.',
-  'Cursor, Claude Code, Copilot & Windsurf in 1 click.',
+  'Free preview in RAM. No signup.',
+  'Cursor, Claude, Copilot & Windsurf in 1 click.',
   'Stop copy-pasting AI rules.',
-  'Built for devs who use more than one AI editor.',
-  'Try it on your repo now.',
+  'Built for multi-IDE developers.',
+  'Test your stack or GitHub repo now.',
   'One rulebook for every AI editor.',
 ];
 
@@ -151,9 +178,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   pain: {
     category: 'ast-parity',
     leads: [
-      'Write your AI rules once. Use them in every editor.',
+      'Write AI rules once. Run in every editor.',
       'Stop rewriting AI rules by hand.',
-      'Your AI rules, in every editor, in 1 click.',
+      'Your AI rules in every IDE in 1 click.',
     ],
     posts: [
       `You spent hours writing the perfect AI rules for Cursor.\n\nThen you tried Claude Code and had to start from zero.\n\nWe fixed that. PromptShift converts your rules to any AI editor in 1 click.`,
@@ -176,9 +203,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   offer: {
     category: 'terminal',
     leads: [
-      'See all plans and try it free here:',
-      'Start free. Upgrade only if it saves you time.',
-      'Pricing, plans and free trial:',
+      'Generate your 8-file suite or drop your repo:',
+      'Start free. Unlock all 8 files for $1.99:',
+      'Instant in-RAM preview + $1.99 pass:',
     ],
     posts: [
       `Our pricing is simple:\n\n• Free: up to 2 rule files\n• $1.99: one-time pass for any repo\n• $5.99/mo: unlimited\n• $19.99/mo: teams + CI\n\nNo sales call. No contract.`,
@@ -199,9 +226,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   before: {
     category: 'ast-parity',
     leads: [
-      'Try the "after" yourself:',
-      'Go from hours to seconds.',
-      'See the difference on your own repo.',
+      'Try the "after" on your stack:',
+      'Go from hours to 2 seconds:',
+      'See the live diff on your repo:',
     ],
     posts: [
       `Before PromptShift:\n• Write rules for Cursor\n• Rewrite them for Claude Code\n• Rewrite again for Copilot\n• Forget to update one\n\nAfter:\n• Write once\n• Click once\n• Done`,
@@ -219,9 +246,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   security: {
     category: 'security',
     leads: [
-      'Scan and clean your AI rules for free:',
-      'Convert + remove secrets in one click.',
-      'Your files are never stored. Ever.',
+      'Scan & convert your AI rules in RAM:',
+      'Convert + redact leaked keys in 1 click:',
+      '100% In-RAM. Zero files stored on disk:',
     ],
     posts: [
       `Quick check before you push:\n\nIs there an API key in your AI rules file?\n\nPeople paste example code with real keys all the time. PromptShift finds and hides them automatically.`,
@@ -240,9 +267,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   question: {
     category: 'multi-agent',
     leads: [
-      'Whatever you answered, this keeps your rules in sync:',
-      'Tell us below. And try this:',
-      'One rulebook. Every AI editor.',
+      'Keep your AI rules synced everywhere:',
+      'Generate rules for all 4 editors:',
+      'One rulebook. Every AI editor:',
     ],
     posts: [
       `Quick poll for devs:\n\nWhich AI editor are you using right now?\n\n1. Cursor\n2. Claude Code\n3. Copilot\n4. Windsurf\n\nWhatever you pick, PromptShift keeps your rules working in all of them.`,
@@ -260,8 +287,8 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   proof: {
     category: 'mcp-ecosystem',
     leads: [
-      'MCP, terminal or web app. Your choice:',
-      'Verified Grade A on Glama:\nhttps://glama.ai/mcp/servers/topaisaas-dev/promptshift',
+      'Web studio, CLI or Grade-A MCP server:',
+      'Verified Grade A on Glama MCP registry:',
       'Get started in 10 seconds:',
     ],
     posts: [
@@ -280,9 +307,9 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   math: {
     category: 'token-optimization',
     leads: [
-      'Get your time back:',
-      'Leaner rules, better AI, lower bills.',
-      'Do the math on your own repo:',
+      'Get your engineering time back:',
+      'Leaner rules, smarter AI, lower bills:',
+      'Test it on your stack or repo:',
     ],
     posts: [
       `Quick math:\n\n4 AI editors × 30 min to rewrite your rules × every time you update them\n\n= hours lost every month.\n\nOr 10 seconds with PromptShift.`,
@@ -298,8 +325,19 @@ const HANDCRAFTED: Record<string, { category: Category; leads: string[]; posts: 
   },
 };
 
+function inferHandcraftedPairSlug(body: string): string | undefined {
+  const lower = body.toLowerCase();
+  const hasCursor = lower.includes('cursor');
+  const hasClaude = lower.includes('claude');
+  const hasCopilot = lower.includes('copilot');
+  const hasWindsurf = lower.includes('windsurf');
+  if (hasCursor && hasClaude && !hasCopilot && !hasWindsurf) {
+    return 'cursor-to-claude';
+  }
+  return undefined;
+}
+
 function buildHandcrafted(): Draft[] {
-  // Round-robin across sub-families so the feed always alternates angles.
   const order = ['pain', 'offer', 'before', 'security', 'question', 'proof', 'math'];
   const out: Draft[] = [];
   const max = Math.max(...order.map((k) => HANDCRAFTED[k].posts.length));
@@ -307,7 +345,15 @@ function buildHandcrafted(): Draft[] {
     for (const fam of order) {
       const bank = HANDCRAFTED[fam];
       if (i < bank.posts.length) {
-        out.push({ family: 'hand', key: `hand-${fam}`, category: bank.category, body: bank.posts[i], leads: bank.leads });
+        const body = bank.posts[i];
+        out.push({
+          family: 'hand',
+          key: `hand-${fam}`,
+          category: bank.category,
+          body,
+          leads: bank.leads,
+          pairSlug: inferHandcraftedPairSlug(body),
+        });
       }
     }
   }
@@ -315,22 +361,22 @@ function buildHandcrafted(): Draft[] {
 }
 
 // ============================================================================
-// 2. EDITOR-SWITCH POSTS (12 pairs × 6 templates = 72)
+// 2. EDITOR-SWITCH POSTS (12 pairs × 6 templates = 72) — Deep-linked to /convert/[pair]
 // ============================================================================
 
-const EDITOR_PAIRS: Array<[string, string]> = [
-  ['Cursor', 'Claude Code'],
-  ['Claude Code', 'Cursor'],
-  ['Cursor', 'GitHub Copilot'],
-  ['GitHub Copilot', 'Cursor'],
-  ['Windsurf', 'Cursor'],
-  ['Cursor', 'Windsurf'],
-  ['Claude Code', 'GitHub Copilot'],
-  ['Cursor', 'Gemini CLI'],
-  ['Claude Code', 'Windsurf'],
-  ['GitHub Copilot', 'Claude Code'],
-  ['Windsurf', 'Claude Code'],
-  ['Claude Code', 'Gemini CLI'],
+const EDITOR_PAIRS: Array<[string, string, string]> = [
+  ['Cursor', 'Claude Code', 'cursor-to-claude'],
+  ['Claude Code', 'Cursor', 'claude-to-cursor'],
+  ['Cursor', 'GitHub Copilot', 'cursor-to-copilot'],
+  ['GitHub Copilot', 'Cursor', 'copilot-to-cursor'],
+  ['Windsurf', 'Cursor', 'windsurf-to-cursor'],
+  ['Cursor', 'Windsurf', 'cursor-to-windsurf'],
+  ['Claude Code', 'GitHub Copilot', 'claude-to-copilot'],
+  ['Cursor', 'Gemini CLI', 'cursor-to-gemini'],
+  ['Claude Code', 'Windsurf', 'claude-to-windsurf'],
+  ['GitHub Copilot', 'Claude Code', 'copilot-to-claude'],
+  ['Windsurf', 'Claude Code', 'windsurf-to-claude'],
+  ['Claude Code', 'Gemini CLI', 'claude-to-antigravity'],
 ];
 
 const PAIR_TEMPLATES: Array<(a: string, b: string) => string> = [
@@ -344,14 +390,15 @@ const PAIR_TEMPLATES: Array<(a: string, b: string) => string> = [
 
 function buildPairs(): Draft[] {
   const out: Draft[] = [];
-  EDITOR_PAIRS.forEach(([a, b]) => {
+  EDITOR_PAIRS.forEach(([a, b, slug]) => {
     PAIR_TEMPLATES.forEach((tpl) => {
       out.push({
         family: 'pair',
         key: `${a}>${b}`,
         category: 'multi-agent',
         body: tpl(a, b),
-        leads: [`${a} → ${b}: your rules, converted in 1 click.`, `Move your AI rules from ${a} to ${b} in seconds.`],
+        leads: [`${a} → ${b} in 1 click.`, `Move ${a} rules to ${b}:`],
+        pairSlug: slug,
       });
     });
   });
@@ -391,7 +438,7 @@ function buildPersonas(): Draft[] {
         key: p.who,
         category: 'multi-agent',
         body: tpl(p),
-        leads: [`Made for ${p.who}.`, `PromptShift for ${p.who}:`],
+        leads: [`Built for ${p.who}.`, `PromptShift for ${p.who}:`],
       });
     });
   });
@@ -411,10 +458,10 @@ const STACKS = [
   'GraphQL', 'Docker', 'Kubernetes', 'Terraform', 'AWS', 'Cloudflare Workers', 'Vercel', 'Electron', 'Tauri', 'Solidity',
 ];
 
-const STACK_TEMPLATES: Array<{ category: Category; tpl: (s: string) => string }> = [
+const STACK_TEMPLATES: Array<{ category: Category; tpl: (s: string) => string; pairSlug?: string }> = [
   { category: 'ast-parity', tpl: (s) => `Building with ${s}?\n\nYour AI editor needs to know your ${s} rules.\nWrite them once, use them in Cursor, Claude Code, Copilot & Windsurf.\n\nPromptShift does the conversion for you.` },
   { category: 'multi-agent', tpl: (s) => `${s} devs: stop pasting the same AI instructions into 3 different editors.\n\nOne source. Every editor. Always in sync.` },
-  { category: 'syntax-traps', tpl: (s) => `Your ${s} project has AI rules for Cursor but not for Claude Code?\n\nThat's why Claude keeps writing code your team rejects.\n\nFix it in 1 click.` },
+  { category: 'syntax-traps', pairSlug: 'cursor-to-claude', tpl: (s) => `Your ${s} project has AI rules for Cursor but not for Claude Code?\n\nThat's why Claude keeps writing code your team rejects.\n\nFix it in 1 click.` },
   { category: 'token-optimization', tpl: (s) => `${s} + AI coding tip:\n\nKeep your rules in one place and sync them to every editor your team uses.\n\nLess review time. Fewer "why did the AI do that?" moments.` },
   { category: 'terminal', tpl: (s) => `Just started a new ${s} project?\n\nSet up AI rules for Cursor, Claude Code, Copilot & Windsurf in under a minute.\n\nFree for small projects.` },
   { category: 'ast-parity', tpl: (s) => `The fastest way to make AI write better ${s} code:\n\nGive every AI editor the same clear rules.\n\nPromptShift handles the formats. You handle the shipping.` },
@@ -426,13 +473,14 @@ const STACK_TEMPLATES: Array<{ category: Category; tpl: (s: string) => string }>
 function buildStacks(): Draft[] {
   const out: Draft[] = [];
   STACKS.forEach((s) => {
-    STACK_TEMPLATES.forEach(({ category, tpl }) => {
+    STACK_TEMPLATES.forEach(({ category, tpl, pairSlug }) => {
       out.push({
         family: 'stack',
         key: s,
         category,
         body: tpl(s),
-        leads: [`${s} rules for Cursor, Claude Code, Copilot & Windsurf, synced in 1 click.`, `Sync your ${s} AI rules across every editor.`],
+        leads: [`${s} AI rules for all 4 IDEs in 1 click.`, `Sync your ${s} AI rules everywhere:`],
+        pairSlug,
       });
     });
   });
@@ -472,9 +520,18 @@ export function generateOptimizedCatalog(): XPost[] {
   const cursors: Record<string, number> = { hand: 0, stack: 0, pair: 0, persona: 0 };
   const fallback = ['stack', 'pair', 'persona', 'hand'];
 
+  const extractBody = (main: string) => main.replace(/\n\n[^\n]+$/, '').trim();
+  const usedBodies = new Set(preserved.map((p) => extractBody(p.mainTweet)));
+
   const next = (family: string): Draft | null => {
     for (const fam of [family, ...fallback]) {
-      if (cursors[fam] < pools[fam].length) return pools[fam][cursors[fam]++];
+      while (cursors[fam] < pools[fam].length) {
+        const candidate = pools[fam][cursors[fam]++];
+        if (!usedBodies.has(candidate.body.trim())) {
+          usedBodies.add(candidate.body.trim());
+          return candidate;
+        }
+      }
     }
     return null;
   };
@@ -496,22 +553,32 @@ export function generateOptimizedCatalog(): XPost[] {
       if (usedMain.has(mainTweet)) throw new Error(`Duplicate main tweet at ${id}`);
       usedMain.add(mainTweet);
 
-      // Pick the first unused (lead, offer) combination, rotating the offer by post index.
-      // Specific leads first (rotated so siblings differ), generic leads only as a fallback.
+      const targetUrl = draft.pairSlug
+        ? `https://promptshift.dev/convert/${draft.pairSlug}`
+        : 'https://promptshift.dev';
+
+      // Pick the first unused (lead, offer) combination that keeps raw length (AFTER UTM injection) < 280
       const shift = n % draft.leads.length;
       const leads = [...draft.leads.slice(shift), ...draft.leads.slice(0, shift), ...GENERIC_LEADS];
       let replyTweet = '';
       search: for (let li = 0; li < leads.length; li++) {
         for (let oi = 0; oi < OFFERS.length; oi++) {
           const lead = leads[li];
-          const candidate = `${lead}\n\n${OFFERS[(n + oi) % OFFERS.length]}\n👉 https://promptshift.dev`;
-          if (!usedReplies.has(candidate)) {
+          const offer = OFFERS[(n + oi) % OFFERS.length];
+          const candidate = `${lead}\n${offer}\n👉 ${targetUrl}`;
+          const withUtm = previewInjectUtmParams(candidate, id);
+          if (
+            !usedReplies.has(candidate) &&
+            withUtm.length <= 278 &&
+            getXWeightedLength(candidate) <= 278 &&
+            getXWeightedLength(withUtm) <= 278
+          ) {
             replyTweet = candidate;
             break search;
           }
         }
       }
-      if (!replyTweet) throw new Error(`No unique reply available for ${id}`);
+      if (!replyTweet) throw new Error(`No unique reply under 280 chars available for ${id}`);
       usedReplies.add(replyTweet);
 
       catalog.push({ id, category: draft.category, slot, mainTweet, replyTweet });
@@ -539,8 +606,8 @@ for (const p of catalog) {
 
   const isNew = catalog.indexOf(p) >= preservedCount;
   const mainW = getXWeightedLength(p.mainTweet);
-  if (mainW > 278) {
-    console.error(`❌ Main tweet too long in ${p.id} (weighted=${mainW}):\n${p.mainTweet}\n`);
+  if (mainW > 278 || p.mainTweet.length >= 280) {
+    console.error(`❌ Main tweet too long in ${p.id} (len=${p.mainTweet.length}, weighted=${mainW}):\n${p.mainTweet}\n`);
     errors++;
   }
   if (/https?:\/\/|promptshift\.dev|glama\.ai|polar\.sh/i.test(p.mainTweet)) {
@@ -555,9 +622,18 @@ for (const p of catalog) {
     console.error(`❌ Main tweet mentions bio in ${p.id}`);
     errors++;
   }
+  const replyWithUtm = previewInjectUtmParams(p.replyTweet, p.id);
   const replyW = getXWeightedLength(p.replyTweet);
-  if (replyW > 278) {
-    console.error(`❌ Reply too long in ${p.id} (weighted=${replyW})`);
+  if (replyW > 278 || p.replyTweet.length >= 280) {
+    console.error(`❌ Reply too long in ${p.id} (len=${p.replyTweet.length}, weighted=${replyW})`);
+    errors++;
+  }
+  if (isNew && replyWithUtm.length >= 280) {
+    console.error(`❌ Reply + UTM exceeds 280 raw chars in ${p.id} (len=${replyWithUtm.length}):\n${replyWithUtm}`);
+    errors++;
+  }
+  if (isNew && !p.replyTweet.includes('$1.99')) {
+    console.error(`❌ Upcoming reply missing $1.99 impulse offer in ${p.id}`);
     errors++;
   }
   if (!p.replyTweet.includes('https://promptshift.dev')) {
@@ -580,12 +656,17 @@ if (errors > 0) {
   process.exit(1);
 }
 
-const upcoming = catalog.slice(preservedCount, preservedCount + SIX_MONTH_POSTS);
+const upcoming = catalog.slice(preservedCount);
+const deepLinkedCount = upcoming.filter((p) => p.replyTweet.includes('/convert/')).length;
 const catCounts: Record<string, number> = {};
-for (const p of upcoming) catCounts[p.category] = (catCounts[p.category] || 0) + 1;
+for (const p of upcoming.slice(0, SIX_MONTH_POSTS)) {
+  catCounts[p.category] = (catCounts[p.category] || 0) + 1;
+}
 
-console.log(`✅ ${catalog.length} posts (${preservedCount} already broadcast preserved, next = ${upcoming[0]?.id}).`);
-console.log('✅ 100% unique main tweets & replies, CTA on every new post, zero URL in main tweets, all <= 278 weighted chars.');
+console.log(`✅ ${catalog.length} posts (${preservedCount} already broadcast preserved verbatim, next = ${upcoming[0]?.id}).`);
+console.log(`✅ 100% of ${upcoming.length} upcoming replies pitch 1-Click Stack/GitHub Builder + Free Preview + $1.99 (+ 50+ Vault).`);
+console.log(`✅ ${deepLinkedCount} upcoming pair posts deep-link directly to /convert/[pair].`);
+console.log('✅ All upcoming mainTweet & replyTweet strictly < 280 chars even after injectUtmParams.');
 console.log('📊 Next 6 months category mix:', catCounts);
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

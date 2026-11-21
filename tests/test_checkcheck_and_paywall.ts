@@ -4,7 +4,13 @@ import path from 'node:path';
 import { CheckCheckService } from '../lib/analytics/checkcheckService';
 import { PolarService } from '../lib/payments/polarService';
 import { ServerTelemetryStore } from '../lib/analytics/serverTelemetryStore';
-import { injectUtmParams } from '../scripts/x-autopilot';
+import {
+  STACK_CHIP_OPTIONS,
+  synthesizeStackSuite,
+  parseGitHubRepoInput,
+  inferStackChipsFromSignals,
+} from '../lib/converter/stackSuiteGenerator';
+import { injectUtmParams, X_POSTS_CATALOG } from '../scripts/x-autopilot';
 
 async function runTests() {
   console.log('🧪 Running Sovereign (checkcheck) & Paywall Hardening Test Suite...\n');
@@ -188,7 +194,65 @@ async function runTests() {
     0,
     `Found legacy broken checkout URLs or stale free-pro copy:\n${violations.join('\n')}`
   );
-  console.log('✅ [4/4] Zero broken legacy Polar 404 URLs or stale free-pro claims across active runtime codebase.\n');
+  console.log('✅ [4/5] Zero broken legacy Polar 404 URLs or stale free-pro claims across active runtime codebase.');
+
+  // 5. 1-Click Stack Rules Builder, GitHub Repo Importer & X Catalog Conversion Hook Verification
+  assert.strictEqual(STACK_CHIP_OPTIONS.length, 8, 'Must provide all 8 interactive stack chips');
+  const stackSuite = synthesizeStackSuite(['nextjs15', 'react19_ts', 'supabase_rls', 'owasp_security']);
+  assert.strictEqual(stackSuite.totalFiles, 8, 'Synthesized stack suite must contain 8 files total');
+  assert.strictEqual(stackSuite.previewFiles, 2, 'Sliced starter preview must contain 2 files');
+  assert.strictEqual(stackSuite.lockedFileLabels.length, 6, '6 files must be staged/locked for $1.99 unlock');
+  assert.strictEqual(
+    1 + stackSuite.fullProject.rules.length + stackSuite.fullProject.knowledge_base.length,
+    8,
+    'fullProject must contain 8 files in RAM'
+  );
+  assert.strictEqual(
+    1 + stackSuite.slicedProject.rules.length + stackSuite.slicedProject.knowledge_base.length,
+    2,
+    'slicedProject must contain 2 files in RAM'
+  );
+
+  const parsedGh = parseGitHubRepoInput('https://github.com/vercel/next.js');
+  assert.deepStrictEqual(parsedGh, { owner: 'vercel', repo: 'next.js', fullName: 'vercel/next.js' });
+  const inferredChips = inferStackChipsFromSignals('vercel/next.js TypeScript Tailwind Supabase');
+  assert.ok(inferredChips.includes('nextjs15') && inferredChips.includes('supabase_rls'));
+
+  const annualCatalog = JSON.parse(
+    fs.readFileSync(path.join(rootDir, 'data', 'x_annual_posts_catalog.json'), 'utf8')
+  );
+  const postsHistory = JSON.parse(
+    fs.readFileSync(path.join(rootDir, 'data', 'x_posts_history.json'), 'utf8')
+  );
+  const postedIds = new Set(postsHistory.history.map((h: any) => h.id));
+  let deepLinkCount = 0;
+  for (const post of annualCatalog) {
+    if (!postedIds.has(post.id)) {
+      const withUtm = injectUtmParams(post.replyTweet, post.id);
+      assert.ok(
+        post.mainTweet.length < 280,
+        `Annual mainTweet ${post.id} exceeds 280 chars (${post.mainTweet.length})`
+      );
+      assert.ok(
+        withUtm.length < 280,
+        `Annual replyTweet+UTM ${post.id} exceeds 280 chars (${withUtm.length})`
+      );
+      assert.ok(
+        post.replyTweet.includes('$1.99'),
+        `Upcoming annual replyTweet ${post.id} must pitch the $1.99 impulse offer`
+      );
+      if (post.replyTweet.includes('/convert/')) deepLinkCount++;
+    }
+  }
+  assert.ok(deepLinkCount >= 100, `Expected >= 100 deep-linked /convert/[pair] posts, got ${deepLinkCount}`);
+
+  for (const post of X_POSTS_CATALOG) {
+    const withUtm = injectUtmParams(post.replyTweet, post.id);
+    assert.ok(post.mainTweet.length < 280, `Catalog mainTweet ${post.id} >= 280 chars`);
+    assert.ok(withUtm.length < 280, `Catalog replyTweet+UTM ${post.id} >= 280 chars`);
+    assert.ok(post.replyTweet.includes('$1.99'), `Catalog replyTweet ${post.id} missing $1.99`);
+  }
+  console.log('✅ [5/5] 1-Click 8-File Stack Builder, GitHub Repo Importer & 730 X Catalog (<280 chars + UTM) verified.\n');
   console.log('🎉 ALL SOVEREIGN CHECKCHECK & MONETIZATION HARDENING TESTS PASSED!');
 }
 
