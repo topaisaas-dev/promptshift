@@ -1,6 +1,6 @@
 {
-  "lastRun": "2026-11-24T19:40:09.585Z",
-  "totalBroadcasts": 35,
+  "lastRun": "2026-11-25T04:59:50.569Z",
+  "totalBroadcasts": 36,
   "history": [
     {
       "id": "post-d001-morning",
@@ -314,6 +314,15 @@
       "postedAt": "2026-11-24T19:40:09.585Z",
       "mainTweetId": "2125313511509143877",
       "replyTweetId": "2125313523102236761",
+      "simulated": false,
+      "retweetedBy3K": true
+    },
+    {
+      "id": "post-d018-afternoon",
+      "category": "ci-cd",
+      "postedAt": "2026-11-25T04:59:50.569Z",
+      "mainTweetId": "2125454361224708542",
+      "replyTweetId": "2125454372754915719",
       "simulated": false,
       "retweetedBy3K": true
     }
